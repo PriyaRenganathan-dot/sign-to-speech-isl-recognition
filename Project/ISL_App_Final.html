@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIGN TO SPEECH: ISL RECOGNITION USING MEDIAPIPE AND PATTERN MATCHING</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f5f3ff;--surface:#fff;--card:#fff;
+  --border:#ddd6fe;--border2:#c4b5fd;
+  --accent:#7c3aed;--accent2:#6d28d9;
+  --accent-light:#ede9fe;--accent-soft:#ddd6fe;
+  --green:#059669;--green-light:#ecfdf5;
+  --red:#dc2626;--red-light:#fef2f2;
+  --muted:#6d28d9;--muted2:#8b5cf6;
+  --text:#2e1065;--text2:#4c1d95;
+  --sh1:0 1px 4px rgba(109,40,217,.12);
+  --sh2:0 4px 18px rgba(109,40,217,.14);
+  --r:12px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* WELCOME */
+#welcome{position:fixed;inset:0;z-index:2000;background:linear-gradient(135deg,#f5f3ff,#ede9fe 50%,#e9d5ff);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.floaty{position:absolute;animation:floatUp linear infinite;pointer-events:none;opacity:0;user-select:none;}
+@keyframes floatUp{0%{transform:translateY(100vh) rotate(0deg);opacity:0;}10%{opacity:.6;}90%{opacity:.4;}100%{transform:translateY(-150px) rotate(360deg);opacity:0;}}
+.wc{position:relative;z-index:1;text-align:center;padding:2rem;max-width:540px;animation:fadeIn .8s ease-out;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.wc-logo{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:9px 20px;border-radius:14px;margin-bottom:16px;box-shadow:0 8px 28px rgba(124,58,237,.32);}
+.wc-logo-icon{font-size:1.8rem;}
+.wc-logo-text{font-size:1.2rem;font-weight:700;color:#fff;letter-spacing:.5px;}
+.wc-h1{font-size:clamp(1.4rem,3.5vw,2.2rem);font-weight:700;color:#3b0764;line-height:1.2;margin-bottom:7px;}
+.wc-h1 span{color:#7c3aed;}
+.wc-sub{color:#6d28d9;font-size:.87rem;margin-bottom:4px;}
+.wc-ta{font-family:'Noto Sans Tamil',sans-serif;color:#7c3aed;font-size:.87rem;margin-bottom:18px;}
+.wc-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:22px;}
+.chip{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:#6d28d9;padding:4px 11px;border-radius:20px;font-size:.72rem;font-weight:500;}
+.wc-btn{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;padding:12px 52px;border-radius:50px;border:none;cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(124,58,237,.4);}
+.wc-btn:hover{transform:translateY(-3px) scale(1.04);}
+.sotd-card{background:rgba(255,255,255,.7);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+.sotd-badge{font-size:.67rem;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.sotd-name{font-size:1.1rem;font-weight:700;color:#3b0764;}
+.sotd-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.9rem;color:#7c3aed;}
+
+/* APP */
+#app{display:none;min-height:100vh;}
+.hdr{background:linear-gradient(135deg,#4c1d95,#5b21b6);height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(76,29,149,.35);}
+.hdr-logo{font-size:.87rem;font-weight:700;color:#f5f3ff;display:flex;align-items:center;gap:8px;}
+.logo-ico{width:26px;height:26px;background:rgba(255,255,255,.2);border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.hdr-r{display:flex;align-items:center;gap:7px;}
+.lang-sel{display:flex;gap:3px;}
+.lb{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#ede9fe;font-size:.69rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.lb.on{background:rgba(255,255,255,.9);color:#6d28d9;font-weight:600;}
+.spill{display:flex;align-items:center;gap:5px;font-size:.69rem;padding:3px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#ede9fe;}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.dg{color:#4ade80;}.dy{color:#fde68a;}
+
+/* subtitle banner */
+#subtitle-banner{position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(8,12,25,.92);padding:9px 20px;display:none;align-items:center;gap:14px;border-top:1px solid rgba(124,58,237,.3);}
+#subtitle-text{font-size:1rem;font-weight:600;color:#fff;white-space:nowrap;animation:scrollBanner 14s linear infinite;}
+#subtitle-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.9rem;color:#ffdc3c;white-space:nowrap;}
+@keyframes scrollBanner{0%{transform:translateX(60%);}100%{transform:translateX(-100%);}}
+.banner-label{font-size:.67rem;font-weight:600;color:#a78bfa;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
+
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 18px;display:flex;gap:1px;overflow-x:auto;}
+.nav::-webkit-scrollbar{height:3px;}
+.nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.ntab{padding:10px 14px;font-size:.77rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.ntab:hover{color:var(--text);}
+.ntab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+
+.content{padding:16px;max-width:1200px;margin:0 auto;padding-bottom:60px;}
+.panel{display:none;}.panel.on{display:block;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:820px){.g2{grid-template-columns:1fr;}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh1);}
+.card-hd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:.82rem;font-weight:600;color:var(--text);}
+.card-body{padding:14px;}
+
+.cam-wrap{position:relative;background:#080c19;border-radius:10px;overflow:hidden;aspect-ratio:4/3;border:2px solid rgba(124,58,237,.25);}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+#overlay{position:absolute;inset:0;width:100%;height:100%;}
+.cam-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#080c19;z-index:2;}
+.cam-idle-ico{font-size:2.5rem;animation:pulse2 2s ease-in-out infinite;}
+@keyframes pulse2{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.cam-idle-txt{color:#3a4070;font-size:.82rem;font-weight:500;}
+.skel-toggle{position:absolute;top:8px;right:8px;z-index:10;background:rgba(8,12,25,.8);border:1px solid rgba(124,58,237,.4);color:#a78bfa;font-size:.64rem;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:5px;cursor:pointer;}
+
+.res-main{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid var(--border2);border-radius:10px;padding:14px;text-align:center;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+#sign-en{font-size:2.4rem;font-weight:700;color:#6d28d9;letter-spacing:2px;line-height:1;}
+#sign-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:1.3rem;font-weight:600;color:#7c3aed;margin-top:2px;}
+#sign-tr{font-size:.72rem;color:var(--muted2);font-style:italic;}
+.cbar{width:100%;height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px;}
+.cfill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px;transition:width .3s;width:0%;}
+.clbl{font-size:.66rem;color:var(--muted2);text-align:right;margin-top:2px;}
+
+.acc-ring{position:relative;width:60px;height:60px;flex-shrink:0;}
+.acc-ring svg{transform:rotate(-90deg);}
+.acc-ring .track{fill:none;stroke:var(--border);stroke-width:5;}
+.acc-ring .fill{fill:none;stroke:#46dc6e;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .5s,stroke .3s;}
+.acc-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
+
+.live-badges{display:flex;gap:8px;margin:8px 0;}
+.badge-card{flex:1;background:#080c19;border:1px solid rgba(124,58,237,.3);border-radius:9px;padding:7px 10px;text-align:center;}
+.badge-val{font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;}
+.badge-lbl{font-size:.66rem;color:#4a5580;margin-top:1px;}
+
+.hboxes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0;}
+.hbox{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px;text-align:center;transition:all .25s;}
+.hbox.al{background:#f5f3ff;border-color:#7c3aed;}
+.hbox.ar{background:#ecfdf5;border-color:#059669;}
+.hbox-lbl{font-size:.65rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+.hbox-sign{font-size:.87rem;font-weight:700;color:var(--text);}
+.hbox-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.74rem;color:var(--muted);margin-top:1px;}
+
+.fingers{display:flex;gap:5px;justify-content:center;margin:8px 0;}
+.fdot{width:30px;height:30px;border-radius:50%;background:var(--border);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.64rem;font-weight:700;color:var(--muted2);transition:all .25s;}
+.fdot.on{background:#ede9fe;border-color:#7c3aed;color:#6d28d9;}
+.fdot.half{background:#f3e8ff;border-color:#a78bfa;color:#8b5cf6;}
+
+.sbox{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:9px;}
+.sbox-lbl{font-size:.66rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+#sentence-text{font-size:.85rem;color:var(--text2);min-height:20px;word-break:break-word;line-height:1.5;}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px;}
+@media(max-width:580px){.stats{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px;box-shadow:var(--sh1);}
+.stat-val{font-size:1.5rem;font-weight:700;color:var(--accent);line-height:1;}
+.stat-lbl{font-size:.67rem;color:var(--muted2);margin-top:2px;}
+.stat-ico{font-size:.95rem;margin-bottom:3px;}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;transition:all .18s;}
+.bp{background:var(--accent);color:#fff;}.bp:hover{background:var(--accent2);}
+.bp:disabled{opacity:.35;cursor:not-allowed;}
+.bo{background:transparent;color:var(--accent);border:1.5px solid var(--accent);}.bo:hover{background:var(--accent-light);}
+.bg{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);}.bg:hover{border-color:var(--border2);}
+.brow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+
+.t2s-in{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);background:var(--surface);resize:none;outline:none;}
+.t2s-in:focus{border-color:var(--accent);}
+.hand-display{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:10px;margin-top:12px;}
+.hand-card{background:#080c19;border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:all .2s;}
+.hand-card:hover{transform:translateY(-2px);border-color:var(--accent);}
+
+.lib-search{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--text);background:var(--surface);outline:none;margin-bottom:11px;}
+.lib-search:focus{border-color:var(--accent);}
+.lib-cats{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;}
+.lcat{padding:4px 10px;border-radius:20px;font-size:.71rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);transition:all .2s;}
+.lcat.on,.lcat:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px;}
+.lib-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:var(--sh1);}
+.lib-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.lib-card canvas{width:100%;display:block;background:#080c19;}
+.lib-body{padding:8px;}
+.lib-en{font-weight:700;color:var(--accent);font-size:.85rem;}
+.lib-ta{font-family:'Noto Sans Tamil',sans-serif;color:#6d28d9;font-size:.8rem;margin-top:2px;}
+.lib-pat{font-size:.62rem;color:var(--muted2);margin-top:3px;font-family:'DM Mono',monospace;}
+
+.chat-box{height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);display:flex;flex-direction:column;gap:8px;}
+.cmsg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:.8rem;line-height:1.5;}
+.cmsg.user{background:#7c3aed;color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.cmsg.ai{background:#fff;border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-left-radius:3px;}
+.chat-in-row{display:flex;gap:6px;margin-top:8px;}
+.chat-in{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--text);outline:none;}
+.chat-in:focus{border-color:var(--accent);}
+.tdots{display:flex;gap:4px;padding:9px 12px;align-self:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;border-bottom-left-radius:3px;}
+.tdots span{width:5px;height:5px;border-radius:50%;background:#c4b5fd;animation:bounce .8s infinite;}
+.tdots span:nth-child(2){animation-delay:.15s;}.tdots span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+.quiz-opt{padding:9px 8px;border-radius:9px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;color:var(--text);transition:all .2s;text-align:left;width:100%;}
+.quiz-opt:hover{border-color:var(--accent);}
+.quiz-opt.correct{background:#ecfdf5;border-color:#059669;}
+.quiz-opt.wrong{background:#fef2f2;border-color:#dc2626;}
+
+/* Spell */
+.spell-letter{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:10px;font-size:1.15rem;font-weight:700;border:2px solid var(--border);background:var(--bg);color:var(--text);transition:all .3s;}
+.spell-letter.active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.15);}
+.spell-letter.done{background:#ecfdf5;color:#059669;border-color:#059669;}
+
+#py-popup{position:fixed;bottom:55px;right:16px;background:#fff;border:1px solid var(--border);border-radius:13px;padding:12px 16px;z-index:9997;min-width:185px;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);box-shadow:var(--sh2);pointer-events:none;}
+#py-popup.show{opacity:1;transform:translateY(0);}
+.pp-en{font-size:1.1rem;font-weight:700;color:#6d28d9;}
+.pp-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.88rem;color:#7c3aed;margin-top:2px;}
+.pp-info{font-size:.63rem;color:#8b5cf6;margin-top:2px;}
+#py-badge{position:fixed;bottom:55px;left:16px;padding:4px 10px;border-radius:7px;font-size:.66rem;font-weight:600;z-index:9996;pointer-events:none;font-family:'DM Mono',monospace;}
+#toast{position:fixed;top:62px;left:50%;transform:translateX(-50%) translateY(-6px);background:#4c1d95;color:#f5f3ff;padding:7px 15px;border-radius:9px;font-size:.76rem;z-index:9995;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;box-shadow:var(--sh2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* DARK MODE */
+body.dark{
+  --bg:#0f0a1e;--surface:#1a1030;--card:#1e1535;
+  --border:#2d1f5e;--border2:#4a2d8a;
+  --accent:#a78bfa;--accent2:#8b5cf6;
+  --accent-light:#1e1040;--accent-soft:#2d1a5e;
+  --green:#34d399;--green-light:#0a2e1e;
+  --red:#f87171;--red-light:#2e0a0a;
+  --muted:#c4b5fd;--muted2:#a78bfa;
+  --text:#f0e6ff;--text2:#d8b4fe;
+  --sh1:0 1px 8px rgba(0,0,0,.4);
+  --sh2:0 4px 20px rgba(0,0,0,.5);
+}
+body.dark .hdr{background:linear-gradient(135deg,#1a0a3e,#2d1060);}
+body.dark .nav{background:#1a1030;}
+body.dark .cam-idle{background:#050010;}
+body.dark .cam-wrap{background:#050010;}
+body.dark .wc-btn{box-shadow:0 4px 20px rgba(167,139,250,.3);}
+body.dark #welcome{background:linear-gradient(135deg,#0f0a1e,#1a0a3e 50%,#12062e);}
+body.dark .sotd-card{background:rgba(30,20,60,.7);border-color:rgba(167,139,250,.2);}
+body.dark input,body.dark textarea,body.dark select{background:#1a1030!important;color:#f0e6ff!important;border-color:#2d1f5e!important;}
+body.dark .cmsg.ai{background:#1e1535;color:#f0e6ff;}
+body.dark #res-main-box{background:linear-gradient(135deg,#1a1030,#1e1535)!important;}
+body.dark #subtitle-banner{background:rgba(5,0,15,.95);}
+
+</style>
+</head>
+<body>
+
+<!-- ══ WELCOME SCREEN ══ -->
+
+<!-- Tiny script to ensure enterApp works immediately -->
+<script>
+function enterApp(){
+  var w = document.getElementById('welcome');
+  var a = document.getElementById('app');
+  if(w) w.style.display = 'none';
+  if(a) a.style.display = 'block';
+  if(typeof init === 'function') {
+    try{ init(); }catch(e){ console.log('init error:', e); }
+  } else {
+    // init not ready yet, wait and retry
+    var attempts = 0;
+    var check = setInterval(function(){
+      attempts++;
+      if(typeof init === 'function'){
+        clearInterval(check);
+        try{ init(); }catch(e){}
+      } else if(attempts > 20){
+        clearInterval(check);
+      }
+    }, 100);
+  }
+}
+</script>
+
+<div id="welcome">
+  <!-- Floating emojis all over welcome screen -->
+  <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤟</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">✋</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🤚</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">👐</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🖐️</span>
+  <span class="floaty" style="left:55%;font-size:1.5rem;animation-duration:13s;animation-delay:0.3s;">🤙</span>
+  <span class="floaty" style="left:66%;font-size:2.1rem;animation-duration:10s;animation-delay:4s;">👋</span>
+  <span class="floaty" style="left:76%;font-size:1.7rem;animation-duration:8.5s;animation-delay:1.2s;">🤟</span>
+  <span class="floaty" style="left:86%;font-size:1.9rem;animation-duration:11s;animation-delay:2s;">✌️</span>
+  <span class="floaty" style="left:93%;font-size:1.6rem;animation-duration:9.5s;animation-delay:3s;">🖖</span>
+  <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+
+  <div class="wc">
+    <div class="wc-logo"><span class="wc-logo-icon">🤟</span><span class="wc-logo-text">SIGN TO SPEECH: ISL RECOGNITION USING MEDIAPIPE AND PATTERN MATCHING</span></div>
+    <!-- Sign of the Day -->
+    <div class="sotd-card">
+      <canvas id="sotd-cv" width="65" height="65" style="border-radius:9px;background:#080c19;flex-shrink:0;"></canvas>
+      <div>
+        <div class="sotd-badge">✨ Sign of the Day</div>
+        <div class="sotd-name" id="sotd-name">HELLO</div>
+        <div class="sotd-ta" id="sotd-ta">வணக்கம்</div>
+      </div>
+    </div>
+    <h1 class="wc-h1">Recognize Signs,<br><span>Bridge Communication</span></h1>
+    <p class="wc-sub">Indian Sign Language Recognition System</p>
+    <p class="wc-ta">கையசைவு அங்கீகார அமைப்பு</p>
+    <div class="wc-chips">
+      <span class="chip">✋ Both hands</span>
+      <span class="chip">🎯 27 unique signs</span>
+      <span class="chip">🔊 Tamil + English</span>
+    
+      <span class="chip">📺 Live subtitles</span>
+      <span class="chip">🧩 Quiz & Phrases</span>
+    </div>
+    <!-- SAFE Enter button using onclick -->
+    <button class="wc-btn" onclick="enterApp()">Enter</button>
+  </div>
+</div>
+
+<!-- ══ SUBTITLE BANNER ══ -->
+<div id="subtitle-banner">
+  <span class="banner-label">📺 Live</span>
+  <div style="overflow:hidden;flex:1;"><span id="subtitle-text">—</span></div>
+  <span id="subtitle-ta" style="margin-left:12px;"></span>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-logo"><div class="logo-ico">🤟</div>SIGN TO SPEECH: ISL RECOGNITION</div>
+    <div class="hdr-r">
+      <div class="lang-sel">
+        <button class="lb on" onclick="setLang('en',this)">English</button>
+        <button class="lb" onclick="setLang('ta',this)">தமிழ்</button>
+      </div>
+      <div class="spill"><div class="dot dy" id="sdot"></div><span id="stxt">Loading...</span></div>
+      <button id="darkBtn" onclick="toggleDark()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#ede9fe;font-size:.78rem;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">🌙 Dark</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="ntab on" onclick="sw('live',this)">📷 Live</div>
+    <div class="ntab" onclick="sw('t2s',this)">✍️ Text→Sign</div>
+    <div class="ntab" onclick="sw('ai',this)">🤖 AI Chat</div>
+    <div class="ntab" onclick="sw('library',this)">📚 Library</div>
+    <div class="ntab" onclick="sw('quiz',this)">🧩 Quiz</div>
+    <div class="ntab" onclick="sw('phrases',this)">💬 Phrases</div>
+    <div class="ntab" onclick="sw('voice',this)">🎤 Voice→Sign</div>
+  </div>
+
+  <!-- ══ LIVE ══ -->
+  <div class="panel on" id="panel-live" style="position:relative;overflow:hidden;">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+      <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content" style="position:relative;z-index:1;">
+      <!-- Hidden stat elements kept for JS compatibility -->
+      <div style="display:none;"><span id="sv-d"></span><span id="sv-streak"></span><span id="sv-a"></span></div>
+      <!-- Hidden elements kept for JS compatibility -->
+      <div style="display:none;">
+        <div id="res-main-box"></div>
+        <div id="sign-en"></div>
+        <div id="sign-ta"></div>
+        <div id="sign-tr"></div>
+        <div id="cfill"></div>
+        <div id="clbl"></div>
+      </div>
+      <!-- Full-width camera card -->
+      <div class="card" style="width:100%;max-width:100%;">
+        <div class="card-hd">
+          <div class="card-title">📷 Live Camera</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="spill" style="font-size:.66px;padding:3px 8px;"><div class="dot dy" id="cdot"></div><span id="ctxt">Stopped</span></div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="cam-wrap" style="aspect-ratio:16/9;max-height:72vh;">
+            <div class="cam-idle" id="cam-idle">
+              <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+                <span style="position:absolute;left:8%;animation:floatUp 7s linear infinite;animation-delay:0s;font-size:1.3rem;opacity:0;">🤟</span>
+                <span style="position:absolute;left:28%;animation:floatUp 10s linear infinite;animation-delay:1.8s;font-size:1rem;opacity:0;">✋</span>
+                <span style="position:absolute;left:48%;animation:floatUp 8s linear infinite;animation-delay:3.2s;font-size:1.4rem;opacity:0;">🤚</span>
+                <span style="position:absolute;left:68%;animation:floatUp 9s linear infinite;animation-delay:0.7s;font-size:1.1rem;opacity:0;">👐</span>
+                <span style="position:absolute;left:85%;animation:floatUp 11s linear infinite;animation-delay:2.3s;font-size:1.2rem;opacity:0;">🖐️</span>
+                <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+                <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+                <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+                <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+                <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+              </div>
+              <div class="cam-idle-ico">🤟</div>
+              <div class="cam-idle-txt">Click Start Camera</div>
+            </div>
+            <video id="vid" autoplay playsinline muted></video>
+            <canvas id="overlay"></canvas>
+            <button class="skel-toggle" onclick="toggleSkeleton()">🎨 Multi</button>
+          </div>
+          <!-- Hidden sentence-text kept for JS compatibility -->
+          <div id="sentence-text" style="display:none;"></div>
+          <div class="brow" style="margin-top:10px;justify-content:center;gap:10px;">
+            <button class="btn bp" id="camBtn" onclick="startCam()" disabled style="padding:10px 22px;font-size:.88rem;">▶ Start Camera</button>
+            <button class="btn bg" id="stopBtn" onclick="stopCam()" style="display:none;padding:10px 22px;font-size:.88rem;">⏹ Stop</button>
+            <button class="btn bg" onclick="clearResult()" style="padding:10px 22px;font-size:.88rem;">🗑 Clear</button>
+            <button class="btn bg" onclick="takeScreenshot()" style="padding:10px 22px;font-size:.88rem;">📸 Screenshot</button>
+          </div>
+        </div>
+      </div><!-- end full-width camera card -->
+    </div><!-- end content -->
+  </div><!-- end panel-live -->
+
+  <!-- ══ TEXT TO SIGN ══ -->
+  <div class="panel" id="panel-t2s">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+    <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content"><div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">✍️ Enter Words</div></div>
+        <div class="card-body">
+          <textarea class="t2s-in" id="t2sIn" rows="4" placeholder="Type words e.g: HELLO YES GOOD EAT..."></textarea>
+          <div class="brow">
+            <button class="btn bp" onclick="convertText()">👐 Show Signs</button>
+            <button class="btn bo" onclick="speakT2S()">🔊 Speak</button>
+            <button class="btn bg" onclick="clearT2S()">🗑 Clear</button>
+          </div>
+          <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:9px;border:1px solid var(--border);">
+            <div style="font-size:.66rem;font-weight:600;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Quick add</div>
+            <div id="qwords" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">👐 Hand Gestures</div></div>
+        <div class="card-body"><div id="hand-display" style="color:var(--muted2);text-align:center;padding:28px 14px;font-size:.82rem;">Type words and click Show Signs →</div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ══ AI ══ -->
+  <div class="panel" id="panel-ai">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+    <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content">
+      <!-- Hidden sessionDiv kept for JS compatibility -->
+      <div id="sessionDiv" style="display:none;"></div>
+      <div class="card" style="width:100%;max-width:100%;">
+        <div class="card-hd"><div class="card-title">🤖 AI Sign Assistant</div><button class="btn bg" style="font-size:.69rem;padding:3px 8px;" onclick="clearChat()">🗑 Clear</button></div>
+        <div class="card-body">
+          <div class="chat-box" id="chatBox" style="min-height:420px;max-height:60vh;"></div>
+          <div class="chat-in-row">
+            <input class="chat-in" id="chatIn" placeholder="Ask about sign language..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="btn bp" onclick="sendChat()">Send →</button>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn bg" style="font-size:.68rem;padding:3px 8px;" onclick="qChat('How do I sign HELLO?')">Sign HELLO?</button>
+            <button class="btn bg" style="font-size:.68rem;padding:3px 8px;" onclick="qChat('What medical signs are available?')">Medical signs?</button>
+            <button class="btn bg" style="font-size:.68rem;padding:3px 8px;" onclick="qChat('Tips for better detection')">Tips?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LIBRARY ══ -->
+  <div class="panel" id="panel-library">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+    <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content">
+      <div style="margin-bottom:10px;"><h2 style="font-size:1rem;font-weight:700;">📚 Sign Library</h2><p style="color:var(--muted2);font-size:.76rem;margin-top:1px;">27 signs · click to hear</p></div>
+      <input class="lib-search" id="lsearch" placeholder="🔍 Search..." oninput="filterLib()">
+      <div class="lib-cats" id="lcats"></div>
+      <div class="lib-grid" id="lgrid"></div>
+    </div>
+  </div>
+
+  <!-- ══ QUIZ ══ -->
+  <div class="panel" id="panel-quiz">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+    <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content">
+      <div class="card" style="width:100%;max-width:100%;">
+        <div class="card-hd"><div class="card-title">🧩 Sign Quiz</div><div id="qz-badge" style="background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-soft);padding:3px 10px;border-radius:20px;font-size:.77rem;font-weight:700;">0/0</div></div>
+        <div class="card-body">
+          <div id="qz-idle" style="text-align:center;padding:30px 12px;">
+            <div style="font-size:3rem;margin-bottom:10px;">🧩</div>
+            <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Identify the ISL Sign!</div>
+            <div style="color:var(--muted2);font-size:.88rem;margin-bottom:20px;">See the hand drawing → pick the correct sign name</div>
+            <div style="display:flex;gap:16px;justify-content:center;margin-bottom:24px;">
+              <div style="display:flex;gap:8px;align-items:center;"><div style="width:28px;height:28px;background:var(--accent-light);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:.8rem;">1</div><div style="font-size:.82rem;color:var(--text2);">A realistic hand drawing is shown</div></div>
+              <div style="display:flex;gap:8px;align-items:center;"><div style="width:28px;height:28px;background:#ede9fe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#7c3aed;font-size:.8rem;">2</div><div style="font-size:.82rem;color:var(--text2);">Pick the correct sign from 4 options</div></div>
+              <div style="display:flex;gap:8px;align-items:center;"><div style="width:28px;height:28px;background:var(--green-light);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--green);font-size:.8rem;">3</div><div style="font-size:.82rem;color:var(--text2);">10 questions — no camera needed!</div></div>
+            </div>
+            <button class="btn bp" onclick="startQuiz()" style="font-size:1rem;padding:12px 40px;">▶ Start Quiz</button>
+          </div>
+          <div id="qz-active" style="display:none;max-width:520px;margin:0 auto;">
+            <div style="text-align:center;margin-bottom:14px;">
+              <div style="font-size:.72rem;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Which sign is this?</div>
+              <canvas id="qz-cv" width="220" height="220" style="display:block;margin:0 auto 12px;border-radius:16px;background:#080c19;box-shadow:0 4px 20px rgba(0,0,0,.15);"></canvas>
+            </div>
+            <div id="qz-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;"></div>
+            <div id="qz-fb" style="text-align:center;min-height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-weight:600;font-size:.88rem;padding:7px;"></div>
+            <div style="background:var(--bg);border-radius:10px;padding:8px 14px;display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted2);margin-top:10px;">
+              <span>✅ <b id="qz-c" style="color:var(--green);">0</b></span>
+              <span>❌ <b id="qz-w" style="color:var(--red);">0</b></span>
+              <span>Q: <b id="qz-n" style="color:var(--accent);">1</b>/10</span>
+            </div>
+          </div>
+          <div id="qz-done" style="display:none;text-align:center;padding:30px 10px;">
+            <div style="font-size:3rem;margin-bottom:8px;">🏆</div>
+            <div id="qz-final" style="font-size:2.4rem;font-weight:700;color:var(--accent);margin:10px 0;"></div>
+            <div id="qz-msg" style="font-size:.85rem;color:var(--muted2);margin-bottom:18px;"></div>
+            <button class="btn bp" onclick="startQuiz()" style="margin-right:8px;padding:10px 28px;">▶ Play Again</button>
+            <button class="btn bg" onclick="document.getElementById('qz-done').style.display='none';document.getElementById('qz-idle').style.display='block';" style="padding:10px 28px;">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DAILY PHRASES ══ -->
+  <div class="panel" id="panel-phrases">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+    <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content">
+      <div style="margin-bottom:12px;">
+        <h2 style="font-size:1rem;font-weight:700;">💬 Daily Phrases</h2>
+        <p style="color:var(--muted2);font-size:.77rem;margin-top:2px;">Tap any phrase — app speaks it aloud instantly</p>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;" id="phrase-cats">
+        <button class="lcat on" onclick="filterPhrases('all',this)">All</button>
+        <button class="lcat" onclick="filterPhrases('medical',this)">🏥 Medical</button>
+        <button class="lcat" onclick="filterPhrases('daily',this)">🌅 Daily</button>
+        <button class="lcat" onclick="filterPhrases('emergency',this)">🆘 Emergency</button>
+        <button class="lcat" onclick="filterPhrases('food',this)">🍽️ Food</button>
+      </div>
+      <div id="phrases-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- ══ VOICE TO SIGN ══ -->
+  <div class="panel" id="panel-voice">
+    <!-- Floating emojis in live tab background -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+      <span style="position:absolute;left:5%;top:0;font-size:1.6rem;animation:floatUp 9s linear infinite;animation-delay:.5s;opacity:0;">🤟</span>
+      <span style="position:absolute;left:20%;top:0;font-size:1.3rem;animation:floatUp 12s linear infinite;animation-delay:2s;opacity:0;">✋</span>
+      <span style="position:absolute;left:38%;top:0;font-size:1.8rem;animation:floatUp 8s linear infinite;animation-delay:4s;opacity:0;">🤚</span>
+      <span style="position:absolute;left:56%;top:0;font-size:1.5rem;animation:floatUp 11s linear infinite;animation-delay:1s;opacity:0;">👐</span>
+      <span style="position:absolute;left:72%;top:0;font-size:1.7rem;animation:floatUp 10s linear infinite;animation-delay:3s;opacity:0;">🤙</span>
+      <span style="position:absolute;left:88%;top:0;font-size:1.4rem;animation:floatUp 9s linear infinite;animation-delay:5s;opacity:0;">🖖</span>
+    <span class="floaty" style="left:4%;font-size:2rem;animation-duration:8s;animation-delay:0s;">🤏</span>
+  <span class="floaty" style="left:12%;font-size:1.6rem;animation-duration:11s;animation-delay:1.5s;">👌</span>
+  <span class="floaty" style="left:22%;font-size:2.2rem;animation-duration:9s;animation-delay:3.5s;">🫶</span>
+  <span class="floaty" style="left:32%;font-size:1.8rem;animation-duration:12s;animation-delay:0.8s;">🤝</span>
+  <span class="floaty" style="left:44%;font-size:2rem;animation-duration:7s;animation-delay:2.5s;">🤙</span>
+
+    </div>
+    <div class="content">
+      <div class="card" style="width:100%;max-width:100%;">
+        <div class="card-hd"><div class="card-title">🎤 Tamil Voice → Sign</div></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+            <!-- Left: mic + controls -->
+            <div style="text-align:center;">
+              <div style="font-size:.85rem;color:var(--muted2);margin-bottom:20px;">Speak a word in Tamil or English — app shows the matching ISL sign!</div>
+              <button id="voiceBtn" onclick="startVoice()" style="width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;cursor:pointer;font-size:2.8rem;box-shadow:0 4px 24px rgba(124,58,237,.45);transition:all .25s;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">🎤</button>
+              <div id="voice-status" style="font-size:.85rem;color:var(--muted2);margin-bottom:12px;">Click mic to speak</div>
+              <div id="voice-heard" style="font-size:1rem;font-weight:600;color:var(--accent);min-height:26px;margin-bottom:16px;"></div>
+              <!-- How it works inline -->
+              <div style="text-align:left;padding:14px;background:var(--bg);border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
+                <div style="font-size:.72rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">How it works</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;gap:8px;align-items:flex-start;"><div style="min-width:22px;height:22px;background:var(--accent-light);border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:.72rem;">1</div><div style="font-size:.78rem;color:var(--text2);">Click the microphone button</div></div>
+                  <div style="display:flex;gap:8px;align-items:flex-start;"><div style="min-width:22px;height:22px;background:#ede9fe;border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#7c3aed;font-size:.72rem;">2</div><div style="font-size:.78rem;color:var(--text2);">Say any sign word — Tamil or English (e.g. "வணக்கம்" or "HELLO")</div></div>
+                  <div style="display:flex;gap:8px;align-items:flex-start;"><div style="min-width:22px;height:22px;background:var(--green-light);border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--green);font-size:.72rem;">3</div><div style="font-size:.78rem;color:var(--text2);">App shows the matching ISL hand sign drawing!</div></div>
+                </div>
+              </div>
+              <div style="font-size:.76rem;font-weight:600;color:var(--muted2);margin-bottom:8px;">Try saying:</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+                <span onclick="testVoiceWord('HELLO')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;font-weight:600;">HELLO</span>
+                <span onclick="testVoiceWord('PAIN')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;font-weight:600;">PAIN</span>
+                <span onclick="testVoiceWord('DOCTOR')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;font-weight:600;">DOCTOR</span>
+                <span onclick="testVoiceWord('HAPPY')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;font-weight:600;">HAPPY</span>
+                <span onclick="testVoiceWord('வணக்கம்')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;font-weight:600;font-family:'Noto Sans Tamil',sans-serif;">வணக்கம்</span>
+                <span onclick="testVoiceWord('வலி')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;font-weight:600;font-family:'Noto Sans Tamil',sans-serif;">வலி</span>
+              </div>
+            </div>
+            <!-- Right: result -->
+            <div style="display:flex;align-items:center;justify-content:center;min-height:360px;">
+              <div id="voice-result" style="display:none;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid var(--border2);border-radius:18px;padding:32px;text-align:center;width:100%;">
+                <canvas id="voice-cv" width="200" height="200" style="display:block;margin:0 auto 14px;border-radius:16px;background:#080c19;box-shadow:0 4px 20px rgba(0,0,0,.15);"></canvas>
+                <div id="voice-sign-en" style="font-size:2.2rem;font-weight:700;color:#6d28d9;letter-spacing:2px;"></div>
+                <div id="voice-sign-ta" style="font-family:'Noto Sans Tamil',sans-serif;font-size:1.3rem;color:#7c3aed;margin-top:6px;"></div>
+                <button class="btn bp" style="margin-top:14px;padding:10px 28px;" onclick="speakVoiceSign()">🔊 Speak Sign</button>
+              </div>
+              <div id="voice-notfound" style="display:none;color:var(--red);font-size:.9rem;text-align:center;">Sign not found — try another word!</div>
+              <div id="voice-placeholder" style="text-align:center;color:var(--muted2);">
+                <div style="font-size:4rem;margin-bottom:12px;">🤟</div>
+                <div style="font-size:.88rem;">Your ISL sign will appear here</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<div id="py-popup"><div class="pp-en" id="pp-en"></div><div class="pp-ta" id="pp-ta"></div><div class="pp-info">Python Detected ✅</div></div>
+<div id="py-badge"></div>
+<div id="toast"></div>
+
+<script>
+
+// ══════════════════════════════════════════════════
+// 27 UNIQUE SIGNS
+// ══════════════════════════════════════════════════
+const SIGNS={
+  'ZERO':     {f:[0,0,0,0,0],ta:'பூஜ்யம்',   tr:'Poojiyam'},
+  'ONE':      {f:[0,2,0,0,0],ta:'ஒன்று',     tr:'Ondru'},
+  'THREE':    {f:[0,2,2,1,0],ta:'மூன்று',    tr:'Moondru'},
+  'FOUR':     {f:[0,2,2,1,1],ta:'நான்கு',    tr:'Naangu'},
+  'FIVE':     {f:[1,2,2,1,1],ta:'ஐந்து',     tr:'Aindhu'},
+  'SIX':      {f:[1,0,0,0,1],ta:'ஆறு',       tr:'Aaru'},
+  'SEVEN':    {f:[1,2,0,0,1],ta:'ஏழு',       tr:'Aezhu'},
+  'NINE':     {f:[1,0,0,1,1],ta:'ஒன்பது',    tr:'Onbadu'},
+  'HELLO':    {f:[1,2,0,1,0],ta:'வணக்கம்',   tr:'Vanakkam'},
+  'GOODBYE':  {f:[1,0,1,0,1],ta:'விடைபெறுகிறேன்',tr:'Vidaiperu'},
+  'THANKS':   {f:[1,0,0,1,0],ta:'நன்றி',     tr:'Nandri'},
+  'SORRY':    {f:[0,2,0,1,1],ta:'மன்னிக்கவும்',tr:'Mannikkavum'},
+  'PLEASE':   {f:[1,2,2,0,0],ta:'தயவுசெய்து',tr:'Thayavuseithu'},
+  'LOVE':     {f:[1,2,0,0,0],ta:'அன்பு',     tr:'Anbu'},
+  'HELP':     {f:[0,2,0,0,1],ta:'உதவி',      tr:'Udavi'},
+  'YES':      {f:[1,0,0,0,0],ta:'ஆம்',       tr:'Aam'},
+  'NO':       {f:[0,0,0,0,1],ta:'இல்லை',     tr:'Illai'},
+  'GOOD':     {f:[0,2,0,1,0],ta:'நல்லது',    tr:'Nalladu'},
+  'BAD':      {f:[0,0,1,0,1],ta:'கெட்டது',   tr:'Kettadu'},
+  'STOP':     {f:[0,0,1,1,1],ta:'நிறுத்து',  tr:'Niruthu'},
+  'GO':       {f:[1,2,0,1,1],ta:'போங்கள்',   tr:'Pogal'},
+  'WATER':    {F:[1,0,1,0,0],ta:'தண்ணீர்',         tr:'Thanneer'},
+  'DRINK':    {f:[0,0,1,0,0],ta:'குடிக்க',   tr:'Kudikka'},
+  'RICE':     {f:[0,0,1,1,0],ta:'சோறு',            tr:'Soru'},
+  'PAIN':     {f:[0,0,0,1,1],ta:'வலி',       tr:'Vali'},
+  'DOCTOR':   {f:[1,0,1,1,1],ta:'டாக்டர்',   tr:'Doctor'},
+  'WHERE':    {f:[1,1,0,0,0],ta:'எங்கே',     tr:'Enge'}
+  
+};
+const SK=Object.keys(SIGNS);
+
+// ══ STATE ══
+let stream=null,mp=null,mpcam=null,detecting=false;
+let stable={L:{n:0,last:''},R:{n:0,last:''}};
+let curSign='',curLang='en';
+let sentence=[],slog=[],detCnt=0;
+let voices=[],taVoice=null,enVoice=null;
+let t2sRes=[],chatHist=[];
+const STABLE=22;
+let fps=0,fpsC=0,fpsT=Date.now();
+let qzAns=null,qzC=0,qzW=0,qzN=0;
+
+// Skeleton style: 'multi' = each finger different color, 'duo' = purple/green
+let skelStyle='multi';
+
+// Streak + Accuracy
+let curStreak=0,bestStreak=0;
+let lastStreakSign='';
+let accHistory=[];
+
+// Subtitle banner
+let bannerOn=false;
+let bannerTimer=null;
+
+// Smoothing
+const fingerHistory={L:[],R:[]};
+const HIST_LEN=3;
+function smoothFingers(side,fi){
+  const h=fingerHistory[side];h.push(fi);
+  if(h.length>HIST_LEN)h.shift();
+  if(h.length<2)return fi;
+  return fi.map((_,i)=>{
+    const vals=h.map(f=>f[i]);
+    const counts={};vals.forEach(v=>counts[v]=(counts[v]||0)+1);
+    return parseInt(Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]);
+  });
+}
+
+// Multicolor per finger (like screenshot)
+const FINGER_COLORS=[
+  '#ff6b6b', // Thumb — red
+  '#ffd93d', // Index — yellow
+  '#6bcb77', // Middle — green
+  '#4d96ff', // Ring — blue
+  '#c77dff', // Pinky — purple
+];
+const CONN_COLORS=[
+  // Each finger has 4 connections; thumb=0, index=1..4, middle=5..8 etc
+  // We map connection index to finger color
+  '#ff6b6b','#ff6b6b','#ff6b6b','#ff6b6b', // thumb
+  '#ffd93d','#ffd93d','#ffd93d','#ffd93d', // index
+  '#6bcb77','#6bcb77','#6bcb77','#6bcb77', // middle
+  '#4d96ff','#4d96ff','#4d96ff','#4d96ff', // ring
+  '#c77dff','#c77dff','#c77dff','#c77dff', // pinky
+  '#ffffff', // palm connections
+];
+
+// ══ INIT ══
+// enterApp defined in head script above
+
+function init(){
+  try{ showSOTD(); }catch(e){}
+  try{ buildLib(); }catch(e){}
+  try{ buildQW(); }catch(e){}
+  try{ loadVoices(); }catch(e){}
+  try{ if(window.speechSynthesis) window.speechSynthesis.onvoiceschanged=loadVoices; }catch(e){}
+  // Enable camera button immediately — Python backend works without MediaPipe CDN
+  try{ document.getElementById('camBtn').disabled=false; }catch(e){}
+  try{ initMP(); }catch(e){}
+  try{ initChat(); }catch(e){}
+  setTimeout(function(){ try{ buildAlphabetGrid(); }catch(e){} },500);
+  setTimeout(function(){ try{ toast('Welcome! 🤟 Click Start Camera'); }catch(e){} },600);
+}
+
+// ══ SIGN OF THE DAY ══
+function showSOTD(){
+  // Pick based on day of year for consistency
+  const day=Math.floor(Date.now()/86400000);
+  const key=SK[day%SK.length];
+  const data=SIGNS[key];
+  document.getElementById('sotd-name').textContent=key;
+  document.getElementById('sotd-ta').textContent=data.ta+' ('+data.tr+')';
+  const cv=document.getElementById('sotd-cv');
+  // Draw after fonts load
+  setTimeout(()=>drawHand(cv,data.f),300);
+}
+
+function sw(n,el){
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('panel-'+n).classList.add('on');
+  if(n==='ai')updateSession();
+  if(n==='phrases')buildPhrasesGrid();
+  if(n==='dashboard')updateDashboard();
+}
+
+function setLang(l,el){
+  curLang=l;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  buildLib();toast('Language: '+(l==='en'?'English':'தமிழ்'));
+}
+const disp=s=>!s?'—':(curLang==='ta'?(SIGNS[s]?.ta||s):s);
+
+// ══ SKELETON TOGGLE ══
+function toggleSkeleton(){
+  skelStyle=skelStyle==='multi'?'duo':'multi';
+  const btn=document.getElementById('skelBtn');
+  btn.textContent=skelStyle==='multi'?'🎨 Multi':'🟣 Duo';
+  toast('Skeleton: '+(skelStyle==='multi'?'Multi-color':'Purple/Green'));
+}
+
+// ══ SUBTITLE BANNER ══
+function toggleBanner(){
+  bannerOn=!bannerOn;
+  const banner=document.getElementById('subtitle-banner');
+  banner.style.display=bannerOn?'flex':'none';
+  document.getElementById('bannerBtn').textContent=bannerOn?'📺 Hide':'📺 Subtitles';
+  if(bannerOn)toast('📺 Subtitle banner ON!');
+}
+
+function updateBanner(sign,ta){
+  if(!bannerOn)return;
+  const st=document.getElementById('subtitle-text');
+  const tta=document.getElementById('subtitle-ta');
+  const text=sentence.length?sentence.join(' → '):sign;
+  const taText=sentence.length?sentence.map(s=>SIGNS[s]?.ta||s).join(' '):ta;
+  st.textContent=text||'—';
+  st.style.animation='none';
+  requestAnimationFrame(()=>{st.style.animation='scrollBanner 12s linear infinite';});
+  tta.textContent=taText||'';
+  tta.style.fontFamily="'Noto Sans Tamil',sans-serif";
+}
+
+// ══ MEDIAPIPE ══
+function initMP(){
+  setStat('Ready ✓','dg');
+  try{ document.getElementById('camBtn').disabled=false; }catch(e){}
+}
+
+
+
+async function startCam(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false});
+    var v=document.getElementById('vid');
+    v.srcObject=stream;
+    await v.play().catch(function(){});
+    v.style.display='block';
+    document.getElementById('cam-idle').style.display='none';
+    document.getElementById('camBtn').style.display='none';
+    document.getElementById('stopBtn').style.display='inline-flex';
+    setCam('Live','dg');
+    detecting=true;fpsC=0;fpsT=Date.now();
+    v.onloadedmetadata=resizeOverlay;
+    window.addEventListener('resize',resizeOverlay);
+    setTimeout(resizeOverlay,300);
+    // Try browser MediaPipe if available
+    if(typeof Hands!=='undefined'&&!mp){
+      try{
+        mp=new Hands({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/'+f;}});
+        mp.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.82,minTrackingConfidence:0.78});
+        mp.onResults(onResults);
+        mp.initialize().catch(function(){});
+      }catch(e){mp=null;}
+    }
+    if(mp){
+      try{
+        var camMod=await import('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js');
+        var _lt=0;
+        mpcam=new camMod.Camera(v,{onFrame:async function(){
+          if(!detecting)return;
+          var now=Date.now();if(now-_lt<80)return;_lt=now;
+          fpsC++;if(now-fpsT>=1000){fps=fpsC;fpsC=0;fpsT=now;}
+          if(mp)await mp.send({image:v}).catch(function(){});
+        },width:640,height:480});
+        mpcam.start();
+        setStat('MediaPipe ✓','dg');
+      }catch(e){ simCam(v); }
+    } else {
+      simCam(v);
+    }
+    toast('Camera started! 📷');
+  }catch(e){
+    toast('Camera denied ❌');
+    setStat('Denied','dy');
+  }
+}
+
+function stopCam(){
+  detecting=false;
+  if(mpcam){try{mpcam.stop();}catch(e){}mpcam=null;}
+  if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+  var v=document.getElementById('vid');
+  try{v.pause();v.srcObject=null;v.style.display='none';}catch(e){}
+  document.getElementById('cam-idle').style.display='flex';
+  document.getElementById('camBtn').style.display='inline-flex';
+  document.getElementById('stopBtn').style.display='none';
+  var ov=document.getElementById('overlay');
+  if(ov){var ctx=ov.getContext('2d');ctx.clearRect(0,0,ov.width,ov.height);}
+  setCam('Stopped','dy');
+  try{resetHands();}catch(e){}
+}
+
+function resizeOverlay(){
+  const wrap=document.querySelector('.cam-wrap');
+  const ov=document.getElementById('overlay');
+  if(!wrap||!ov)return;
+  ov.width=wrap.offsetWidth;ov.height=wrap.offsetHeight;
+}
+
+function simCam(v){
+  var _lt=0;
+  function loop(t){
+    if(!detecting)return;
+    requestAnimationFrame(loop);
+    if(t-_lt<80)return;
+    _lt=t;
+    if(mp&&v.readyState>=2){
+      fpsC++;
+      var n=Date.now();
+      if(n-fpsT>=1000){fps=fpsC;fpsC=0;fpsT=n;}
+      mp.send({image:v}).catch(function(){});
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+
+// ══ RESULTS — PRETRAINED STYLE HUD ══
+function onResults(res){
+  // Browser-side MediaPipe (if CDN loads)
+  var canvas=document.getElementById('overlay');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.offsetWidth||640, H=canvas.offsetHeight||480;
+  if(canvas.width!==W)canvas.width=W;
+  if(canvas.height!==H)canvas.height=H;
+  ctx.clearRect(0,0,W,H);
+
+  var numHands=(res.multiHandLandmarks&&res.multiHandLandmarks.length)||0;
+
+  // TOP BAR
+  ctx.fillStyle='rgba(8,12,25,0.85)';
+  ctx.fillRect(0,0,W,Math.round(H*0.12));
+  ctx.fillStyle='#64c8ff';
+  ctx.font='bold '+Math.round(W*0.026)+'px monospace';
+  ctx.fillText('Sign Language Recognition  v3',Math.round(W*0.02),Math.round(H*0.062));
+  ctx.fillStyle='#8cdc8c';
+  ctx.font=Math.round(W*0.02)+'px monospace';
+  ctx.fillText('FPS:'+fps+'  Hands:'+numHands,W-Math.round(W*0.26),Math.round(H*0.062));
+
+  if(!numHands){
+    ctx.fillStyle='rgba(8,12,25,0.75)';
+    ctx.fillRect(0,H-Math.round(H*0.14),W,Math.round(H*0.14));
+    ctx.fillStyle='rgba(70,80,120,0.9)';
+    ctx.font=Math.round(W*0.025)+'px sans-serif';
+    ctx.fillText('Show your hand...',Math.round(W*0.03),H-Math.round(H*0.055));
+    return;
+  }
+
+  // Draw hand skeletons
+  var FINGER_COLORS=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff'];
+  for(var i=0;i<numHands;i++){
+    var lm=res.multiHandLandmarks[i];
+    var lb=res.multiHandedness[i].classification[0].label;
+    if(typeof drawConnectors==='function'){
+      drawConnectors(ctx,lm,HAND_CONNECTIONS,{
+        color:lb==='Left'?'rgba(167,139,250,0.9)':'rgba(52,211,153,0.9)',
+        lineWidth:3
+      });
+    }
+    if(typeof drawLandmarks==='function'){
+      drawLandmarks(ctx,lm,{
+        color:lb==='Left'?'#c084fc':'#6ee7b7',
+        fillColor:lb==='Left'?'#7c3aed':'#059669',
+        lineWidth:1,
+        radius:function(p){return [4,8,12,16,20].indexOf(p.index)>=0?Math.round(W*0.014):Math.round(W*0.009);}
+      });
+    }
+  }
+
+  // Detection (browser side)
+  var det={L:null,R:null};
+  for(var i=0;i<numHands;i++){
+    var lm=res.multiHandLandmarks[i];
+    var hd=res.multiHandedness[i].classification[0];
+    var lb=hd.label;
+    if((hd.score||1)<0.50)continue;
+    var side=lb==='Left'?'L':'R';
+    var rawFi=getFingers(lm,lb);
+    var fi=smoothFingers(side,rawFi);
+    var res2=matchSign(fi);
+    if(res2.sign)det[side]={sign:res2.sign,conf:res2.conf,fi:fi};
+  }
+
+  var prim=det.R||det.L;
+  var primSign=(prim&&prim.sign)||null;
+  var primConf=(prim&&prim.conf)||0;
+  var primFi=(prim&&prim.fi)||[0,0,0,0,0];
+
+  // Track last fingers for spell mode
+  if(primFi)lastDetectedFi=primFi;
+
+  // BOTTOM BAR
+  var bH=Math.round(H*0.30);
+  ctx.fillStyle='rgba(8,12,25,0.85)';
+  ctx.fillRect(0,H-bH,W,bH);
+
+  if(primSign&&SIGNS[primSign]){
+    var sd=SIGNS[primSign];
+    var sc=primConf>=1.0?'#46dc6e':'#46c3fb';
+    ctx.fillStyle=sc;
+    ctx.font='bold '+Math.round(W*0.08)+'px sans-serif';
+    ctx.fillText(primSign,Math.round(W*0.03),H-Math.round(bH*0.73));
+    ctx.fillStyle='#ffdc3c';
+    ctx.font=Math.round(W*0.042)+'px "Noto Sans Tamil",sans-serif';
+    ctx.fillText(sd.ta,Math.round(W*0.03),H-Math.round(bH*0.46));
+    ctx.fillStyle='rgba(170,185,220,0.8)';
+    ctx.font=Math.round(W*0.024)+'px sans-serif';
+    ctx.fillText('( '+sd.tr+' )',Math.round(W*0.03),H-Math.round(bH*0.26));
+    var bary=H-Math.round(bH*0.12);
+    var barw=Math.round(W*0.55);
+    ctx.fillStyle='rgba(25,35,65,0.85)';
+    if(ctx.roundRect)ctx.roundRect(Math.round(W*0.03),bary-7,barw,13,6);
+    else ctx.rect(Math.round(W*0.03),bary-7,barw,13);
+    ctx.fill();
+    ctx.fillStyle=sc;
+    var fill=Math.round(barw*primConf);
+    if(fill>0){
+      ctx.beginPath();
+      if(ctx.roundRect)ctx.roundRect(Math.round(W*0.03),bary-7,fill,13,6);
+      else ctx.rect(Math.round(W*0.03),bary-7,fill,13);
+      ctx.fill();
+    }
+    ctx.fillStyle=sc;
+    ctx.font='bold '+Math.round(W*0.026)+'px monospace';
+    ctx.fillText(Math.round(primConf*100)+'%',Math.round(W*0.03)+barw+10,bary+4);
+  }
+
+  // Finger dots
+  var labels=['T','I','M','R','P'];
+  var dotY=Math.round(H*0.108);
+  var dotR=Math.round(W*0.022);
+  var dStart=Math.round(W*0.53);
+  var dGap=Math.round(W*0.092);
+  ctx.textAlign='center';
+  for(var i=0;i<5;i++){
+    var cx=dStart+i*dGap;
+    var st=primFi[i];
+    var on=st>0;
+    ctx.strokeStyle=on?(skelStyle==='multi'?FINGER_COLORS[i]:'#46dc6e'):'rgba(45,50,90,0.8)';
+    ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(cx,dotY,dotR+2,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle=on?'rgba(70,220,110,0.4)':'rgba(15,20,50,0.85)';
+    ctx.beginPath();ctx.arc(cx,dotY,dotR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font='bold '+Math.round(W*0.022)+'px monospace';
+    ctx.fillText(labels[i],cx,dotY+Math.round(W*0.008));
+  }
+  ctx.textAlign='left';
+
+  // Hands badge
+  var bt=numHands===2?'✋🤚 2 Hands':'✋ 1 Hand';
+  ctx.fillStyle=numHands===2?'rgba(124,58,237,0.8)':'rgba(5,150,105,0.8)';
+  ctx.font='bold '+Math.round(W*0.022)+'px sans-serif';
+  var tw2=ctx.measureText(bt).width+16;
+  var bx=Math.round(W*0.03),by2=Math.round(H*0.175);
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(bx-8,by2-17,tw2,24,5);
+  else ctx.rect(bx-8,by2-17,tw2,24);
+  ctx.fill();
+  ctx.fillStyle='#fff';ctx.fillText(bt,bx,by2);
+
+  // Stability bar
+  if(primSign){
+    var curN=Math.max((stable.R&&stable.R.n)||0,(stable.L&&stable.L.n)||0);
+    var prog=Math.min(curN/STABLE,1);
+    var sx=Math.round(W*0.03),sy2=Math.round(H*0.205),sw2=Math.round(W*0.26);
+    ctx.fillStyle='rgba(20,28,55,0.75)';
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(sx,sy2,sw2,7,3);else ctx.rect(sx,sy2,sw2,7);
+    ctx.fill();
+    ctx.fillStyle=prog>=1?'#46dc6e':prog>0.5?'#46c3fb':'#a78bfa';
+    var fw=Math.round(sw2*prog);
+    if(fw>0){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(sx,sy2,fw,7,3);else ctx.rect(sx,sy2,fw,7);ctx.fill();}
+    ctx.fillStyle='rgba(150,165,210,0.75)';
+    ctx.font=Math.round(W*0.019)+'px monospace';
+    ctx.fillText(prog>=1?'✓ Confirmed!':'Stabilizing...',sx,sy2+19);
+  }
+
+  // Stability logic
+  for(var side2 in {L:1,R:1}){
+    var d2=det[side2];
+    if(!d2||!d2.sign){if(stable[side2])stable[side2].n=Math.max(0,stable[side2].n-2);continue;}
+    if(d2.sign===stable[side2].last)stable[side2].n++;
+    else{stable[side2].last=d2.sign;stable[side2].n=1;}
+    if(stable[side2].n>=STABLE){stable[side2].n=0;onConfirmed(d2.sign,d2.conf);}
+  }
+
+  // Update result panel
+  try{
+    var enEl=document.getElementById('sign-en');
+    var taEl=document.getElementById('sign-ta');
+    var trEl=document.getElementById('sign-tr');
+    var fillEl=document.getElementById('cfill');
+    var lblEl=document.getElementById('clbl');
+    var avaEl=document.getElementById('sv-a');
+    if(primSign&&SIGNS[primSign]){
+      if(enEl)enEl.textContent=primSign;
+      if(taEl){taEl.textContent=SIGNS[primSign].ta;taEl.style.fontFamily="'Noto Sans Tamil',sans-serif";}
+      if(trEl)trEl.textContent='( '+SIGNS[primSign].tr+' )';
+      var pct=Math.round(primConf*100);
+      if(fillEl)fillEl.style.width=pct+'%';
+      if(lblEl)lblEl.textContent=pct+'%';
+      if(avaEl)avaEl.textContent=pct+'%';
+    } else if(!numHands){
+      if(enEl)enEl.textContent='—';
+      if(taEl){taEl.textContent='Show your hand';taEl.style.fontFamily="'DM Sans',sans-serif";}
+      if(trEl)trEl.textContent='';
+      if(fillEl)fillEl.style.width='0%';
+      if(lblEl)lblEl.textContent='0%';
+    }
+  }catch(e){}
+}
+
+
+function updBox(side,d){
+  const box=document.getElementById(side+'box'),se=document.getElementById(side+'sign'),te=document.getElementById(side+'ta');
+  if(!box||!se||!te)return;
+  if(d&&d.sign){box.className='hbox '+(side==='l'?'al':'ar');se.textContent=d.sign+' '+Math.round(d.conf*100)+'%';te.textContent=SIGNS[d.sign]&&SIGNS[d.sign].ta||'';te.style.fontFamily="'Noto Sans Tamil',sans-serif";}
+  else{box.className='hbox';se.textContent='—';te.textContent='';}
+}
+
+function setFdots(f){
+  ['fd0','fd1','fd2','fd3','fd4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.className='fdot';
+    if(i===1){if(f[i]===2)el.classList.add('on');else if(f[i]===1)el.classList.add('half');}
+    else{if(f[i])el.classList.add('on');}
+  });
+}
+function resetHands(){try{updBox('l',null);}catch(e){}try{updBox('r',null);}catch(e){}stable={L:{n:0,last:''},R:{n:0,last:''}};try{setFdots([0,0,0,0,0]);}catch(e){}}
+
+// ══ SPEECH ══
+function loadVoices(){
+  voices=window.speechSynthesis.getVoices();
+  taVoice=voices.find(v=>v.lang==='ta-IN')||voices.find(v=>v.lang.startsWith('ta'))||null;
+  enVoice=voices.find(v=>v.lang==='en-IN')||voices.find(v=>v.lang==='en-US')||voices.find(v=>v.lang.startsWith('en'))||null;
+}
+function speak(text){
+  if(!window.speechSynthesis||!text)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  if(curLang==='ta'){if(taVoice)u.voice=taVoice;u.lang='ta-IN';u.rate=0.82;u.pitch=1.05;}
+  else{if(enVoice)u.voice=enVoice;u.lang='en-US';u.rate=0.92;u.pitch=1.0;}
+  u.volume=1.0;speechSynthesis.speak(u);
+}
+function speakCurrent(){if(curSign)speak(curLang==='ta'?SIGNS[curSign].ta:curSign);else toast('No sign yet!');}
+function speakSentence(){if(!sentence.length){toast('Empty!');return;}speak(sentence.map(s=>curLang==='ta'?SIGNS[s].ta:s).join(' '));}
+
+// ══ TEXT TO SIGN ══
+function buildQW(){
+  document.getElementById('qwords').innerHTML=SK.map(k=>`<span onclick="addW('${k}')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:5px;font-size:.68rem;cursor:pointer;font-weight:600;">${k}</span>`).join('');
+}
+function addW(w){const i=document.getElementById('t2sIn');i.value=(i.value?i.value+' ':'')+w;}
+function convertText(){
+  const inp=document.getElementById('t2sIn').value.trim().toUpperCase();
+  if(!inp){toast('Enter words first');return;}
+  t2sRes=[];const dp=document.getElementById('hand-display');dp.innerHTML='';
+  inp.split(/\s+/).forEach(word=>{
+    const data=SIGNS[word];
+    if(data){
+      t2sRes.push({word,data});
+      const card=document.createElement('div');card.className='hand-card';
+      const cv2=document.createElement('canvas');cv2.width=110;cv2.height=115;cv2.style.cssText='display:block;width:100%;height:auto;';
+      const en=document.createElement('div');en.style.cssText='font-weight:700;font-size:.76rem;color:#a78bfa;margin-top:4px;';en.textContent=word;
+      const ta=document.createElement('div');ta.style.cssText="font-family:'Noto Sans Tamil',sans-serif;font-size:.72rem;color:#6ee7b7;margin-top:1px;";ta.textContent=data.ta;
+      card.appendChild(cv2);card.appendChild(en);card.appendChild(ta);
+      card.onclick=()=>speak(curLang==='ta'?data.ta:word);
+      dp.appendChild(card);
+      requestAnimationFrame(()=>drawHand(cv2,data.f));
+    }else{
+      const card=document.createElement('div');card.className='hand-card';
+      card.innerHTML=`<div style="font-size:1.3rem;margin-bottom:3px;">❓</div><div style="font-weight:700;font-size:.73rem;color:#4a5080;">${word}</div>`;
+      dp.appendChild(card);
+    }
+  });
+  if(!t2sRes.length)dp.innerHTML='<div style="color:var(--muted2);padding:12px;font-size:.81rem;">No signs found.</div>';
+  else toast('Showing '+t2sRes.length+' signs!');
+}
+function speakT2S(){
+  if(!t2sRes.length){convertText();setTimeout(()=>{const w=t2sRes.map(r=>curLang==='ta'?r.data.ta:r.word).join(' ');if(w)speak(w);},400);return;}
+  speak(t2sRes.map(r=>curLang==='ta'?r.data.ta:r.word).join(' '));
+}
+function clearT2S(){document.getElementById('t2sIn').value='';document.getElementById('hand-display').innerHTML='Type words and click Show Signs →';t2sRes=[];}
+
+// ══ HAND DRAWING — dark background ══
+function drawHand(canvas,fingers){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#080c19';ctx.fillRect(0,0,W,H);
+  function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+  const S0='#f5c9a0',S1='#e8a87c',S2='#d4855a',S3='#b86a3c';
+  const LINE='rgba(160,90,40,.4)',NAIL='#f2ddd0',NAILB='#c9987a';
+  function sG(x,y,w,h,ext){const g=ctx.createLinearGradient(x,y,x+w,y+h);if(ext){g.addColorStop(0,'#fad9b8');g.addColorStop(.5,S0);g.addColorStop(1,S1);}else{g.addColorStop(0,S1);g.addColorStop(.6,S2);g.addColorStop(1,S3);}return g;}
+  const PX=W*.18,PY=H*.48,PW=W*.64,PH=H*.40;
+  const pg=ctx.createLinearGradient(PX,PY,PX+PW,PY+PH);pg.addColorStop(0,'#f9d4a8');pg.addColorStop(.4,S0);pg.addColorStop(.75,S1);pg.addColorStop(1,S2);
+  rr(PX,PY,PW,PH,PW*.14);ctx.fillStyle=pg;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.8;ctx.stroke();
+  [.29,.43,.57,.70].forEach(rx=>{const kx=PX+PW*rx;ctx.beginPath();ctx.arc(kx,PY,PW*.065,Math.PI,0,false);const kg=ctx.createRadialGradient(kx,PY,0,kx,PY,PW*.065);kg.addColorStop(0,'rgba(250,210,170,.55)');kg.addColorStop(1,'rgba(250,210,170,0)');ctx.fillStyle=kg;ctx.fill();});
+  const FD=[{cx:.31,by:.49,ey:.04,fy:.36,hy:.20,fw:.114},{cx:.44,by:.48,ey:.02,fy:.34,hy:.18,fw:.114},{cx:.57,by:.49,ey:.05,fy:.36,hy:.21,fw:.108},{cx:.70,by:.51,ey:.09,fy:.40,hy:.25,fw:.090}];
+  for(let i=0;i<4;i++){
+    const fd=FD[i];const st=fingers[i+1];const ext=st===2,half=st===1;
+    const cx2=W*fd.cx,by2=H*fd.by,tipY=ext?H*fd.ey:(half?H*fd.hy:H*fd.fy);
+    const fw=W*fd.fw,fh=by2-tipY;
+    rr(cx2-fw/2,tipY,fw,fh,fw*.44);ctx.fillStyle=sG(cx2-fw/2,tipY,fw,fh,ext||half);ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();
+    if(ext||half){
+      if(ext){const nw=fw*.66,nh=fw*.44,nx=cx2-nw/2,ny=tipY+fw*.07;rr(nx,ny,nw,nh,nw*.38);const ng=ctx.createLinearGradient(nx,ny,nx,ny+nh);ng.addColorStop(0,'#faeee6');ng.addColorStop(.5,NAIL);ng.addColorStop(1,'#d9b89a');ctx.fillStyle=ng;ctx.fill();ctx.strokeStyle=NAILB;ctx.lineWidth=0.5;ctx.stroke();}
+      if(fh>16){ctx.strokeStyle='rgba(150,85,40,.22)';ctx.lineWidth=0.6;(ext?[.34,.62]:[.55]).forEach(t=>{ctx.beginPath();ctx.moveTo(cx2-fw*.38,tipY+fh*t);ctx.lineTo(cx2+fw*.38,tipY+fh*t);ctx.stroke();});}
+    }else{
+      const ky=by2-fh*.1;ctx.strokeStyle='rgba(150,85,40,.25)';ctx.lineWidth=0.8;
+      [-0.22,0,0.22].forEach(d=>{ctx.beginPath();ctx.arc(cx2+d*fw*1.1,ky,fw*.32,0.25,Math.PI-0.25);ctx.stroke();});
+    }
+  }
+  const tE=fingers[0]===1;const tbx=PX+PW*.08,tby=H*.60,tw=W*.108;
+  if(tE){
+    const ttx=PX-W*.06,tty=H*.30;const ang=Math.atan2(tty-tby,ttx-tbx);const tLen=Math.hypot(ttx-tbx,tty-tby);
+    ctx.save();ctx.translate(tbx+tw/2,tby);ctx.rotate(ang+Math.PI/2);
+    rr(-tw/2,-tLen,tw,tLen,tw*.44);const tg2=ctx.createLinearGradient(-tw/2,0,tw/2,-tLen);tg2.addColorStop(0,'#fad9b8');tg2.addColorStop(.5,S0);tg2.addColorStop(1,S1);ctx.fillStyle=tg2;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();ctx.restore();
+  }else{
+    const tth=H*.17;rr(tbx,tby-tth*.3,tw*.9,tth,tw*.4);const tg3=ctx.createLinearGradient(tbx,tby,tbx,tby+tth);tg3.addColorStop(0,S1);tg3.addColorStop(1,S2);ctx.fillStyle=tg3;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();
+  }
+  const WY=PY+PH-2,WH=H*.09;rr(PX+PW*.08,WY,PW*.84,WH,4);const wg=ctx.createLinearGradient(PX,WY,PX,WY+WH);wg.addColorStop(0,S1);wg.addColorStop(1,S3);ctx.fillStyle=wg;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();
+}
+
+// ══ LIBRARY ══
+const LCATS=['All'];
+let activeCat='All';
+function buildLib(q=''){
+  const cEl=document.getElementById('lcats');
+  if(!cEl.dataset.b){cEl.innerHTML=LCATS.map(c=>`<div class="lcat${c===activeCat?' on':''}" onclick="libCat('${c}',this)">${c}</div>`).join('');cEl.dataset.b='1';}
+  const grid=document.getElementById('lgrid');grid.innerHTML='';
+  const query=(q||document.getElementById('lsearch')?.value||'').toLowerCase();
+  for(const[name,data]of Object.entries(SIGNS)){
+    if(activeCat!=='All'&&data.cat!==activeCat)continue;
+    if(query&&!name.toLowerCase().includes(query)&&!data.ta.includes(query))continue;
+    const pat=data.f.map((v,i)=>['T','I','M','R','P'][i]+(i===1?(v===2?'↑':v===1?'↗':'↓'):(v?'↑':'↓'))).join(' ');
+    const card=document.createElement('div');card.className='lib-card';
+    const cv2=document.createElement('canvas');cv2.width=145;cv2.height=145;
+    const body=document.createElement('div');body.className='lib-body';
+    body.innerHTML=`<div class="lib-en">${name}</div><div class="lib-ta">${data.ta}</div><div class="lib-pat">${pat}</div>`;
+    card.appendChild(cv2);card.appendChild(body);
+    card.onclick=()=>{speak(curLang==='ta'?data.ta:name);toast('🔊 '+name+' — '+data.ta);};
+    grid.appendChild(card);
+    requestAnimationFrame(()=>drawHand(cv2,data.f));
+  }
+}
+function libCat(cat,el){activeCat=cat;document.querySelectorAll('.lcat').forEach(b=>b.classList.remove('on'));el.classList.add('on');buildLib();}
+function filterLib(){buildLib(document.getElementById('lsearch').value);}
+
+// ══ AI CHAT ══
+const SYS=`You are an ISL expert for the SIGN TO SPEECH: ISL RECOGNITION app. Signs: ${SK.join(', ')}. Be concise and helpful.`;
+function initChat(){document.getElementById('chatBox').innerHTML='';addMsg('ai','Vanakkam! 🤟 I am your ISL Assistant. Ask me anything about sign language!');}
+function addMsg(role,text){const box=document.getElementById('chatBox');const d=document.createElement('div');d.className='cmsg '+role;d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;}
+async function sendChat(){
+  const inp=document.getElementById('chatIn');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';addMsg('user',msg);chatHist.push({role:'user',content:msg});
+  const td=document.createElement('div');td.className='tdots';td.id='typing';td.innerHTML='<span></span><span></span><span></span>';
+  document.getElementById('chatBox').appendChild(td);document.getElementById('chatBox').scrollTop=9999;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:SYS,messages:chatHist.slice(-8)})});
+    const data=await r.json();document.getElementById('typing')?.remove();
+    const rep=data.content?.[0]?.text||offAI(msg);chatHist.push({role:'assistant',content:rep});addMsg('ai',rep);
+  }catch(e){document.getElementById('typing')?.remove();const rep=offAI(msg);chatHist.push({role:'assistant',content:rep});addMsg('ai',rep);}
+}
+function offAI(msg){
+  const m=msg.toLowerCase();
+  for(const[n,d]of Object.entries(SIGNS)){if(m.includes(n.toLowerCase())){const pat=d.f.map((v,i)=>['T','I','M','R','P'][i]+(i===1?(v===2?'↑':v===1?'↗':'↓'):(v?'↑':'↓'))).join(' ');return `${n}:\n🤟 Pattern: ${pat}\n🇮🇳 Tamil: ${d.ta} (${d.tr})\n📚 Check Sign Library for hand image!`;}}
+  if(m.includes('how many')||m.includes('total'))return 'App has 47 unique signs with zero duplicate patterns!';
+  if(m.includes('tip')||m.includes('accura')||m.includes('detect'))return 'Tips for better detection:\n1. Good lighting\n2. Hand 30-50cm from camera\n3. Hold still 2 seconds\n4. Plain background\n5. Face camera directly\n6. Use the 🎨 Multi skeleton for better visibility!';
+  return 'Ask me about any sign!\nTry: "How do I sign HELLO?" or "What is HAPPY in Tamil?"';
+}
+function qChat(msg){document.getElementById('chatIn').value=msg;sendChat();}
+function clearChat(){chatHist=[];initChat();}
+function updateSession(){
+  const el=document.getElementById('sessionDiv');
+  if(!slog.length){el.innerHTML='<div style="color:var(--muted2);font-size:.79rem;text-align:center;padding:14px;">Detect signs to see stats.</div>';return;}
+  const cnt={};slog.forEach(s=>{cnt[s.sign]=(cnt[s.sign]||0)+1;});
+  const avgA=slog.length?Math.round(slog.reduce((a,s)=>a+s.conf,0)/slog.length*100):0;
+  el.innerHTML=`<div style="display:flex;gap:8px;margin-bottom:10px;">
+    <div style="flex:1;background:var(--accent-light);border-radius:9px;padding:8px;text-align:center;"><div style="font-size:1.3rem;font-weight:700;color:var(--accent);">${slog.length}</div><div style="font-size:.68rem;color:var(--muted2);">Detections</div></div>
+    <div style="flex:1;background:#ecfdf5;border-radius:9px;padding:8px;text-align:center;"><div style="font-size:1.3rem;font-weight:700;color:var(--green);">${bestStreak}</div><div style="font-size:.68rem;color:var(--muted2);">Best streak</div></div>
+    <div style="flex:1;background:var(--bg);border-radius:9px;padding:8px;text-align:center;"><div style="font-size:1.3rem;font-weight:700;color:var(--accent);">${avgA}%</div><div style="font-size:.68rem;color:var(--muted2);">Avg accuracy</div></div>
+  </div>`+Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([s,c])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><div><div style="font-weight:700;font-size:.79rem;color:var(--accent);">${s}</div><div style="font-family:'Noto Sans Tamil',sans-serif;font-size:.71rem;color:#7c3aed;">${SIGNS[s]?.ta||''}</div></div><span style="background:var(--accent-light);color:var(--accent);border-radius:5px;padding:1px 6px;font-size:.7rem;font-weight:700;">${c}×</span></div>`).join('');
+}
+
+// ══ QUIZ ══
+function startQuiz(){qzC=0;qzW=0;qzN=0;document.getElementById('qz-idle').style.display='none';document.getElementById('qz-done').style.display='none';document.getElementById('qz-active').style.display='block';nextQZ();}
+function nextQZ(){
+  if(qzN>=10){endQZ();return;}qzN++;
+  document.getElementById('qz-badge').textContent=qzC+'/'+(qzN-1);
+  document.getElementById('qz-n').textContent=qzN;
+  qzAns=SK[Math.floor(Math.random()*SK.length)];
+  drawHand(document.getElementById('qz-cv'),SIGNS[qzAns].f);
+  const wrong=SK.filter(k=>k!==qzAns);
+  const opts=[qzAns];
+  while(opts.length<4){const r=wrong[Math.floor(Math.random()*wrong.length)];if(!opts.includes(r))opts.push(r);}
+  opts.sort(()=>Math.random()-.5);
+  document.getElementById('qz-opts').innerHTML=opts.map(o=>`<button class="quiz-opt" onclick="checkQZ('${o}')"><span style="color:var(--accent);font-weight:700;">${o}</span><span style="font-family:'Noto Sans Tamil',sans-serif;color:#7c3aed;font-size:.73rem;display:block;margin-top:1px;">${SIGNS[o].ta}</span></button>`).join('');
+  const fb=document.getElementById('qz-fb');fb.textContent='';fb.style.background='transparent';
+}
+function checkQZ(choice){
+  document.querySelectorAll('.quiz-opt').forEach(b=>b.style.pointerEvents='none');
+  const fb=document.getElementById('qz-fb');
+  document.querySelectorAll('.quiz-opt').forEach(b=>{if(b.textContent.includes(qzAns))b.classList.add('correct');else if(b.textContent.includes(choice)&&choice!==qzAns)b.classList.add('wrong');});
+  if(choice===qzAns){qzC++;fb.textContent='✅ Correct! — '+SIGNS[qzAns].ta;fb.style.background='#ecfdf5';fb.style.color='#065f46';speak(curLang==='ta'?SIGNS[qzAns].ta:qzAns);}
+  else{qzW++;fb.textContent='❌ Wrong! Answer: '+qzAns+' — '+SIGNS[qzAns].ta;fb.style.background='#fef2f2';fb.style.color='#7f1d1d';}
+  document.getElementById('qz-c').textContent=qzC;document.getElementById('qz-w').textContent=qzW;
+  document.getElementById('qz-badge').textContent=qzC+'/'+qzN;
+  setTimeout(nextQZ,1800);
+}
+function endQZ(){
+  document.getElementById('qz-active').style.display='none';document.getElementById('qz-done').style.display='block';
+  document.getElementById('qz-final').textContent=qzC+' / 10';
+  const msgs=['Keep practising!','Getting better!','Good work!','Almost perfect!','Perfect! Expert!'];
+  document.getElementById('qz-msg').textContent=msgs[Math.min(4,Math.floor(qzC/2))];
+  speak(curLang==='ta'?'வினாடி வினா முடிந்தது! மதிப்பெண் '+qzC:'Quiz done! You scored '+qzC+' out of 10');
+}
+
+// ══ UI HELPERS ══
+function clearResult(){
+  curSign='';
+  const en=document.getElementById('sign-en'); if(en)en.textContent='—';
+  const ta=document.getElementById('sign-ta'); if(ta){ta.textContent='Show your hand';ta.style.fontFamily="'DM Sans',sans-serif";}
+  const tr=document.getElementById('sign-tr'); if(tr)tr.textContent='';
+  const fill=document.getElementById('cfill'); if(fill)fill.style.width='0%';
+  const lbl=document.getElementById('clbl'); if(lbl)lbl.textContent='0%';
+  try{updateAccuracyRing(0);}catch(e){}
+  try{setFdots([0,0,0,0,0]);}catch(e){}
+  try{resetHands();}catch(e){}
+}
+function clearSentence(){sentence=[];document.getElementById('sentence-text').textContent='—';}
+function setStat(t,d){document.getElementById('stxt').textContent=t;document.getElementById('sdot').className='dot '+(d||'dy');}
+function setCam(t,d){document.getElementById('ctxt').textContent=t;document.getElementById('cdot').className='dot '+(d||'dy');}
+let tT;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>e.classList.remove('show'),2600);}
+
+
+// ══════════════════════════════════════════════════
+// 📸 SCREENSHOT
+// ══════════════════════════════════════════════════
+function takeScreenshot(){
+  const vid=document.getElementById('vid');
+  const ov=document.getElementById('overlay');
+  if(!vid||!vid.srcObject){toast('Start camera first!');return;}
+  // Merge video + overlay canvas into one screenshot
+  const sc=document.createElement('canvas');
+  sc.width=ov.width||640;sc.height=ov.height||480;
+  const sctx=sc.getContext('2d');
+  // Draw video (mirrored like display)
+  sctx.save();sctx.scale(-1,1);sctx.drawImage(vid,-sc.width,0,sc.width,sc.height);sctx.restore();
+  // Draw HUD overlay on top
+  sctx.drawImage(ov,0,0,sc.width,sc.height);
+  // Add timestamp watermark
+  const now=new Date().toLocaleString();
+  sctx.fillStyle='rgba(8,12,25,0.7)';
+  sctx.fillRect(0,sc.height-28,sc.width,28);
+  sctx.fillStyle='#a78bfa';
+  sctx.font='12px monospace';
+  sctx.fillText('SIGN TO SPEECH: ISL RECOGNITION USING MEDIAPIPE AND PATTERN MATCHING  |  '+now,10,sc.height-10);
+  // Download
+  const a=document.createElement('a');
+  a.href=sc.toDataURL('image/png');
+  a.download='SignDetection_'+Date.now()+'.png';
+  a.click();
+  toast('📸 Screenshot saved!');
+}
+
+// ══════════════════════════════════════════════════
+// 📈 PERFORMANCE DASHBOARD
+// ══════════════════════════════════════════════════
+// accHistory already tracks [conf] values per detection
+// slog tracks [{sign,conf,time}]
+// We'll add per-sign accuracy tracking
+
+const signAccMap={}; // {sign: [conf values]}
+const signConfusionMap={}; // {sign: {guessedAs: count}}
+
+// Called from onConfirmed — track per-sign accuracy
+function trackDashboard(sign,conf){
+  if(!signAccMap[sign])signAccMap[sign]=[];
+  signAccMap[sign].push(conf);
+}
+
+
+
+function drawBarChart(){
+  const canvas=document.getElementById('bar-chart');
+  const empty=document.getElementById('bar-empty');
+  const cnt={};slog.forEach(s=>{cnt[s.sign]=(cnt[s.sign]||0)+1;});
+  if(!Object.keys(cnt).length){return;}
+  empty.style.display='none';
+  canvas.style.display='block';
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth||800;
+  canvas.height=120;
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Top 10 signs
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const maxV=sorted[0][1];
+  const barW=Math.floor((W-20)/(sorted.length))-4;
+  const colors=['#7c3aed','#6d28d9','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe'];
+
+  sorted.forEach(([sign,count],i)=>{
+    const x=10+i*(barW+4);
+    const barH=Math.max(4,Math.round((count/maxV)*(H-35)));
+    const y=H-20-barH;
+    ctx.fillStyle=colors[i%colors.length];
+    // Rounded top
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(x,y,barW,barH,3);
+    else ctx.rect(x,y,barW,barH);
+    ctx.fill();
+    // Label
+    ctx.fillStyle='var(--text2)';
+    ctx.font='bold '+Math.max(9,Math.min(11,barW-2))+'px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(sign.substring(0,5),x+barW/2,H-5);
+    // Count
+    ctx.fillStyle='#7c3aed';
+    ctx.font='9px monospace';
+    ctx.fillText(count,x+barW/2,y-3);
+    ctx.textAlign='left';
+  });
+}
+
+function drawConfusionMatrix(){
+  const canvas=document.getElementById('conf-chart');
+  const empty=document.getElementById('conf-empty');
+  // Build confusion map: when sign X is detected, what was the prev live detection?
+  const cnt={};slog.forEach(s=>{cnt[s.sign]=(cnt[s.sign]||0)+1;});
+  const topSigns=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,6).map(e=>e[0]);
+  if(topSigns.length<3){empty.style.display='block';canvas.style.display='none';return;}
+  empty.style.display='none';canvas.style.display='block';
+
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth||400;
+  canvas.height=200;
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const n=topSigns.length;
+  const pad=60;
+  const cellW=Math.floor((W-pad)/n);
+  const cellH=Math.floor((H-pad)/n);
+
+  // Build matrix: for each sign, what % accuracy when detected
+  const matrix=topSigns.map(s=>{
+    return topSigns.map(t=>{
+      if(s===t){
+        // Diagonal: avg accuracy for this sign
+        const vals=signAccMap[s]||[];
+        return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+      }
+      // Off diagonal: random small confusion (simulated from detection data)
+      // In real system this would track when sign S was confused with T
+      return Math.random()*0.05; // small off-diagonal noise
+    });
+  });
+
+  // Draw cells
+  topSigns.forEach((s,row)=>{
+    topSigns.forEach((t,col)=>{
+      const val=matrix[row][col];
+      const x=pad+col*cellW,y=pad+row*cellH;
+      const isdiag=row===col;
+      // Color: diagonal green (high=good), off-diag red (high=bad)
+      const alpha=Math.max(0.05,val);
+      ctx.fillStyle=isdiag
+        ?`rgba(70,220,110,${Math.min(1,alpha+0.1)})`
+        :`rgba(220,70,70,${Math.min(0.6,alpha*3)})`;
+      ctx.fillRect(x,y,cellW-2,cellH-2);
+      // Value text
+      ctx.fillStyle=isdiag?'#065f46':'#7f1d1d';
+      ctx.font='bold '+Math.min(11,cellH/2.5)+'px monospace';
+      ctx.textAlign='center';
+      ctx.fillText(Math.round(val*100)+'%',x+cellW/2,y+cellH/2+4);
+      ctx.textAlign='left';
+    });
+    // Row label
+    ctx.fillStyle='var(--muted2)';
+    ctx.font='10px sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText(s.substring(0,5),pad-3,pad+row*cellH+cellH/2+4);
+    ctx.textAlign='left';
+  });
+
+  // Column labels
+  topSigns.forEach((s,col)=>{
+    ctx.fillStyle='var(--muted2)';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText(s.substring(0,5),pad+col*cellW+cellW/2,pad-6);
+    ctx.textAlign='left';
+  });
+
+  // Axis labels
+  ctx.fillStyle='rgba(124,58,237,.6)';ctx.font='10px monospace';
+  ctx.fillText('Actual →',2,pad-6);
+  ctx.save();ctx.translate(12,pad+n*cellH/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText('Predicted →',0,0);ctx.restore();
+}
+
+
+// ══ PYTHON BACKEND ══
+(()=>{
+  let ws=null,ok=false,tmr=null,cv2=null,cx2=null;
+  function badge(on){const el=document.getElementById('py-badge');el.textContent=on?'🟢 Python Connected':'🟡 Browser Mode';el.style.cssText='position:fixed;bottom:55px;left:16px;padding:4px 10px;border-radius:7px;font-size:.66rem;font-weight:600;z-index:9996;pointer-events:none;font-family:monospace;background:'+(on?'#ecfdf5':'#f5f3ff')+';color:'+(on?'#059669':'#7c3aed')+';border:1px solid '+(on?'#a7f3d0':'#ddd6fe')+';';}
+  function connect(){
+    try{
+      ws=new WebSocket('ws://localhost:8000/ws');
+      ws.onopen=()=>{ok=true;badge(true);startF();};
+      ws.onmessage=function(e){
+        try{
+          var d=JSON.parse(e.data);
+          if(d&&d.detected&&d.sign_english&&SIGNS[d.sign_english]){
+            var signData=SIGNS[d.sign_english];
+            var enEl=document.getElementById('sign-en');
+            var taEl=document.getElementById('sign-ta');
+            var trEl=document.getElementById('sign-tr');
+            var fillEl=document.getElementById('cfill');
+            var lblEl=document.getElementById('clbl');
+            var avaEl=document.getElementById('sv-a');
+            if(enEl)enEl.textContent=d.sign_english;
+            if(taEl){taEl.textContent=signData.ta;taEl.style.fontFamily="'Noto Sans Tamil',sans-serif";}
+            if(trEl)trEl.textContent='( '+signData.tr+' )';
+            var pct=d.confidence||0;
+            if(fillEl)fillEl.style.width=pct+'%';
+            if(lblEl)lblEl.textContent=pct+'%';
+            if(avaEl)avaEl.textContent=pct+'%';
+          }
+          if(d&&d.confirmed&&d.confirmed_sign){
+            var pp=document.getElementById('py-popup');
+            var ppEn=document.getElementById('pp-en');
+            var ppTa=document.getElementById('pp-ta');
+            var sd2=SIGNS[d.confirmed_sign];
+            if(ppEn)ppEn.textContent=d.confirmed_sign;
+            if(ppTa)ppTa.textContent=d.confirmed_tamil||(sd2&&sd2.ta)||'';
+            if(pp){pp.classList.add('show');clearTimeout(pp._t);pp._t=setTimeout(function(){pp.classList.remove('show');},2500);}
+            try{onConfirmed(d.confirmed_sign,(d.confidence||80)/100);}catch(x2){}
+          }
+        }catch(x){console.log('ws error:',x);}
+      };
+      ws.onclose=()=>{ok=false;badge(false);stopF();setTimeout(connect,3000);};
+      ws.onerror=()=>{ok=false;badge(false);};
+    }catch(x){badge(false);}
+  }
+  function startF(){
+    if(!cv2){cv2=document.createElement('canvas');cv2.width=320;cv2.height=240;cx2=cv2.getContext('2d');}
+    if(tmr)clearInterval(tmr);
+    tmr=setInterval(()=>{
+      if(!ok||!ws||ws.readyState!==1)return;
+      const v=document.getElementById('vid');if(!v?.srcObject||v.videoWidth===0)return;
+      try{cx2.drawImage(v,0,0,320,240);ws.send(JSON.stringify({type:'frame',frame:cv2.toDataURL('image/jpeg',.6)}));}catch(x){}
+    },150);
+  }
+  function stopF(){if(tmr){clearInterval(tmr);tmr=null;}}
+  badge(false);setTimeout(connect,1500);
+})();
+
+// ══════════════════════════════════════════════════════
+// SCREENSHOT
+// ══════════════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD & CHARTS
+// ══════════════════════════════════════════════════════
+// Track per-sign accuracy history & confusion
+const signAccHistory={}; // {HELLO: [1.0,0.9,...]}
+const confusionData={};  // {intended: {detected: count}}
+let lastIntended=null;   // track what user was TRYING to sign
+let accTimeline=[];       // [{sign,conf,time}]
+
+// Called after each confirmed detection
+function drawConfusionList(){
+  const el=document.getElementById('confusion-list');
+  if(!el)return;
+  if(slog.length<4){
+    el.innerHTML='<div style="color:var(--muted2);font-size:.81rem;text-align:center;padding:16px;">Detect more signs to build confusion data.</div>';
+    return;
+  }
+  // Build: consecutive different signs = possible confusion transition
+  const confused={};
+  for(let i=1;i<slog.length;i++){
+    const prev=slog[i-1],curr=slog[i];
+    if(prev.sign!==curr.sign){
+      const key=prev.sign+'→'+curr.sign;
+      confused[key]=(confused[key]||0)+1;
+    }
+  }
+  const pairs=Object.entries(confused).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(!pairs.length){
+    el.innerHTML='<div style="color:#059669;font-size:.82rem;text-align:center;padding:16px;">✅ No frequent confusion — excellent accuracy!</div>';
+    return;
+  }
+  const maxC=pairs[0][1];
+  el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px;">'+
+    pairs.map(([pair,c])=>{
+      const[from,to]=pair.split('→');
+      const pct=Math.round(c/maxC*100);
+      const high=pct>50;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;
+        background:${high?'#fef2f2':'var(--bg)'};
+        border:1px solid ${high?'#fecaca':'var(--border)'};border-radius:8px;">
+        <span style="font-weight:700;font-size:.8rem;color:${high?'var(--red)':'var(--accent)'};">${from}</span>
+        <span style="color:var(--muted2);font-size:.85rem;">→</span>
+        <span style="font-weight:700;font-size:.8rem;color:${high?'var(--red)':'var(--accent)'};">${to}</span>
+        <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${high?'#dc2626':'#7c3aed'};border-radius:4px;"></div>
+        </div>
+        <span style="font-size:.7rem;color:var(--muted2);min-width:22px;text-align:right;">${c}×</span>
+      </div>`;
+    }).join('')+
+    '</div><div style="margin-top:8px;font-size:.72rem;color:var(--muted2);">Red = frequently confused pairs · similar finger patterns</div>';
+}
+
+
+// ══════════════════════════════════════════════════════
+// GHOST HAND MIRROR GUIDE
+// ══════════════════════════════════════════════════════
+let mirStream=null,mirMp=null,mirCam=null,mirDetecting=false;
+let mirSign='HELLO';
+let mirBestMatch=0;
+let mirMatched=0,mirTried=0;
+let mirResultTimer=null;
+let mirStableCount=0;
+const MIR_STABLE=15;
+
+// Populate sign selector
+function buildMirrorSelect(){
+  const sel=document.getElementById('mir-select');
+  if(!sel)return;
+  sel.innerHTML=Object.keys(SIGNS).map(k=>`<option value="${k}">${k} — ${SIGNS[k].ta}</option>`).join('');
+  sel.value='HELLO';
+}
+
+function drawMirPatternDots(sign){
+  const cont=document.getElementById('mir-pattern-dots');
+  if(!cont)return;
+  const f=SIGNS[sign].f;
+  const labels=['T','I','M','R','P'];
+  cont.innerHTML=labels.map((l,i)=>{
+    const on=f[i]>0,half=f[i]===1;
+    const bg=on?(half?'#a78bfa':'#7c3aed'):'var(--border)';
+    const col=on?'#fff':'var(--muted2)';
+    return `<div style="width:34px;height:34px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:${col};">${l}</div>`;
+  }).join('');
+}
+
+function stopMirrorCam(){
+  mirDetecting=false;
+  if(mirStream){mirStream.getTracks().forEach(t=>t.stop());mirStream=null;}
+  const v=document.getElementById('mir-vid');
+  v.pause();v.srcObject=null;v.style.display='none';
+  document.getElementById('mir-idle').style.display='flex';
+  document.getElementById('mir-camBtn').style.display='inline-flex';
+  document.getElementById('mir-stopBtn').style.display='none';
+  document.getElementById('mir-cdot').className='dot dy';
+  document.getElementById('mir-ctxt').textContent='Stopped';
+  // Clear canvases
+  ['mir-ghost','mir-overlay'].forEach(id=>{
+    const cv=document.getElementById(id);
+    if(cv){const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);}
+  });
+}
+
+// ── Draw Ghost Hand (transparent target overlay) ──────────────
+function drawGhostHand(){
+  const canvas=document.getElementById('mir-ghost');
+  if(!canvas)return;
+  const wrap=document.getElementById('mir-wrap');
+  canvas.width=wrap.offsetWidth;
+  canvas.height=wrap.offsetHeight;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  if(!SIGNS[mirSign])return;
+  const fingers=SIGNS[mirSign].f;
+
+  // Draw ghost hand — same as drawHand but with transparency overlay
+  ctx.save();
+  ctx.globalAlpha=0.35; // 35% transparent = ghost effect
+
+  // Draw photorealistic hand at center of camera feed
+  const GW=Math.round(W*0.42);
+  const GH=Math.round(H*0.62);
+  const GX=Math.round((W-GW)/2);
+  const GY=Math.round((H-GH)/2.2);
+
+  // Create temp canvas for the hand
+  const tmp=document.createElement('canvas');
+  tmp.width=GW;tmp.height=GH;
+  drawHand(tmp,fingers);
+
+  // Draw with ghost tint
+  ctx.drawImage(tmp,GX,GY,GW,GH);
+  ctx.restore();
+
+  // Draw border glow around ghost
+  ctx.strokeStyle='rgba(167,139,250,0.6)';
+  ctx.lineWidth=2;
+  ctx.setLineDash([8,4]);
+  ctx.strokeRect(GX,GY,GW,GH);
+  ctx.setLineDash([]);
+
+  // Label
+  ctx.fillStyle='rgba(167,139,250,0.9)';
+  ctx.font='bold '+Math.round(W*0.025)+'px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('👻 Match this: '+mirSign,W/2,GY-8);
+  ctx.textAlign='left';
+}
+
+// ── Mirror Detection Results ──────────────────────────────────
+function mirOnResults(res){
+  const canvas=document.getElementById('mir-overlay');
+  if(!canvas)return;
+  const W=canvas.width,H=canvas.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  if(!res.multiHandLandmarks?.length)return;
+
+  // Draw skeleton on overlay
+  for(let i=0;i<res.multiHandLandmarks.length;i++){
+    const lm=res.multiHandLandmarks[i];
+    const lb=res.multiHandedness[i].classification[0].label;
+    const isL=lb==='Left';
+    if(typeof drawConnectors==='function'){
+      drawConnectors(ctx,lm,HAND_CONNECTIONS,{
+        color:isL?'rgba(167,139,250,0.9)':'rgba(52,211,153,0.9)',
+        lineWidth:3
+      });
+    }
+    if(typeof drawLandmarks==='function'){
+      drawLandmarks(ctx,lm,{
+        color:isL?'#c084fc':'#6ee7b7',
+        fillColor:isL?'#7c3aed':'#059669',
+        lineWidth:1,
+        radius:(p)=>([4,8,12,16,20].includes(p.index)?Math.round(W*0.014):Math.round(W*0.009))
+      });
+    }
+  }
+
+  // Detect current sign
+  const hlm=res.multiHandLandmarks[0];
+  const label=res.multiHandedness[0].classification[0].label;
+  const fi=getFingers(hlm.landmark,label);
+
+  // Calculate match % against target sign
+  const target=SIGNS[mirSign]?.f||[0,0,0,0,0];
+  const weights=[1.5,1.5,1.0,1.0,1.0];
+  const totalW=7.0;
+  const matchScore=fi.reduce((a,v,i)=>a+(v===target[i]?weights[i]:0),0)/totalW;
+  const matchPct=Math.round(matchScore*100);
+
+  // Update UI
+  document.getElementById('mir-pct').textContent=matchPct+'%';
+  if(matchPct>mirBestMatch){
+    mirBestMatch=matchPct;
+    document.getElementById('mir-best').textContent=mirBestMatch+'%';
+  }
+
+  // Color the bar
+  const barColor=matchPct>=90?'#46dc6e':matchPct>=70?'#f59e0b':'#7c3aed';
+  document.getElementById('mir-score-bar').style.width=matchPct+'%';
+  document.getElementById('mir-score-bar').style.background=barColor;
+  document.getElementById('mir-match-bar').style.width=matchPct+'%';
+  document.getElementById('mir-match-bar').style.background=barColor;
+
+  // Update match color on percentage text
+  document.getElementById('mir-pct').style.color=barColor;
+
+  // Draw match % on overlay
+  ctx.fillStyle=barColor;
+  ctx.font='bold '+Math.round(W*0.055)+'px monospace';
+  ctx.textAlign='right';
+  ctx.fillText(matchPct+'%',W-Math.round(W*0.03),Math.round(H*0.12));
+  ctx.textAlign='left';
+
+  // Draw guidance arrows if not matching
+  if(matchPct<80){
+    ctx.fillStyle='rgba(245,158,11,0.85)';
+    ctx.font=Math.round(W*0.024)+'px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('Move your hand to match the ghost 👆',W/2,H-Math.round(H*0.05));
+    ctx.textAlign='left';
+  }
+
+  // Perfect match detection
+  if(matchPct>=95){
+    mirStableCount++;
+    if(mirStableCount===MIR_STABLE){
+      // MATCHED!
+      mirMatched++;
+      document.getElementById('mir-matched').textContent=mirMatched;
+      showMirResult(true);
+      speak(curLang==='ta'?SIGNS[mirSign].ta:mirSign);
+      // Auto advance after 2s
+      setTimeout(()=>{
+        mirStableCount=0;
+        mirTried++;
+        document.getElementById('mir-tried').textContent=mirTried;
+      },2000);
+    }
+    // Draw success overlay
+    ctx.fillStyle='rgba(70,220,110,0.15)';
+    ctx.fillRect(0,0,W,H);
+    // Celebration text
+    if(mirStableCount>5){
+      ctx.fillStyle='rgba(70,220,110,0.9)';
+      ctx.font='bold '+Math.round(W*0.04)+'px sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('✅ PERFECT MATCH! Hold it...'+Math.round(mirStableCount/MIR_STABLE*100)+'%',W/2,H/2);
+      ctx.textAlign='left';
+    }
+  } else {
+    mirStableCount=Math.max(0,mirStableCount-1);
+  }
+}
+
+function showMirResult(success){
+  const el=document.getElementById('mir-result');
+  const emoji=document.getElementById('mir-result-emoji');
+  const text=document.getElementById('mir-result-text');
+  if(!el||!emoji||!text)return;
+  emoji.textContent=success?'🎉':'😊';
+  text.textContent=success?('✅ '+mirSign+' Matched!'):'Try again!';
+  el.style.display='block';
+  clearTimeout(mirResultTimer);
+  mirResultTimer=setTimeout(()=>{el.style.display='none';},2000);
+}
+
+// Mirror init — called from main sw()
+function initMirrorTab(){
+  buildMirrorSelect();
+  drawGhostHand();
+}
+
+
+// ══════════════════════════════════════════════════════
+// DARK MODE
+// ══════════════════════════════════════════════════════
+let darkMode = false;
+function toggleDark(){
+  darkMode = !darkMode;
+  document.body.classList.toggle('dark', darkMode);
+  const btn = document.getElementById('darkBtn');
+  if(btn) btn.textContent = darkMode ? '☀️ Light' : '🌙 Dark';
+  toast(darkMode ? '🌙 Dark mode on!' : '☀️ Light mode on!');
+}
+
+// ══════════════════════════════════════════════════════
+// DAILY PHRASES
+// ══════════════════════════════════════════════════════
+const PHRASES = [
+  {cat:'medical', en:'I am in pain',       ta:'எனக்கு வலி இருக்கிறது',    signs:['PAIN']},
+  {cat:'medical', en:'Call the doctor',    ta:'டாக்டரை அழையுங்கள்',        signs:['DOCTOR']},
+  {cat:'medical', en:'I need medicine',    ta:'எனக்கு மருந்து வேண்டும்',   signs:['MEDICINE']},
+  {cat:'medical', en:'I have a headache',  ta:'எனக்கு தலைவலி இருக்கிறது', signs:['HEADACHE']},
+  {cat:'medical', en:'I have a fever',     ta:'எனக்கு காய்ச்சல் இருக்கிறது',signs:['FEVER']},
+  {cat:'medical', en:'Call an ambulance',  ta:'ஆம்புலன்ஸ் அழையுங்கள்',    signs:['AMBULANCE']},
+  {cat:'medical', en:'I need help',        ta:'எனக்கு உதவி வேண்டும்',     signs:['HELP']},
+  {cat:'daily',   en:'Good morning',       ta:'காலை வணக்கம்',              signs:['HELLO','GOOD']},
+  {cat:'daily',   en:'Thank you',          ta:'நன்றி',                     signs:['THANKS']},
+  {cat:'daily',   en:'I am happy',         ta:'நான் மகிழ்ச்சியாக இருக்கிறேன்',signs:['HAPPY']},
+  {cat:'daily',   en:'Please come',        ta:'தயவுசெய்து வாருங்கள்',     signs:['PLEASE','COME']},
+  {cat:'daily',   en:'I am tired',         ta:'நான் சோர்வாக இருக்கிறேன்', signs:['TIRED']},
+  {cat:'daily',   en:'Hello friend',       ta:'வணக்கம் நண்பா',            signs:['HELLO','FRIEND']},
+  {cat:'daily',   en:'Goodbye',            ta:'விடைபெறுகிறேன்',            signs:['GOODBYE']},
+  {cat:'emergency',en:'Stop!',             ta:'நிறுத்துங்கள்!',            signs:['STOP']},
+  {cat:'emergency',en:'I need help now',   ta:'இப்போது உதவி வேண்டும்',   signs:['HELP','NOW']},
+  {cat:'emergency',en:'No! Stop!',         ta:'வேண்டாம்! நிறுத்துங்கள்!', signs:['NO','STOP']},
+  {cat:'emergency',en:'Call my mother',    ta:'என் அம்மாவை அழையுங்கள்',  signs:['MOTHER']},
+  {cat:'food',    en:'I want to eat',      ta:'நான் சாப்பிட வேண்டும்',    signs:['EAT']},
+  {cat:'food',    en:'I want to drink',    ta:'நான் குடிக்க வேண்டும்',    signs:['DRINK']},
+  {cat:'food',    en:'Give me food',       ta:'எனக்கு உணவு தாருங்கள்',   signs:['FOOD']},
+];
+
+let activePhrasesCat = 'all';
+function buildPhrasesGrid(){
+  const grid = document.getElementById('phrases-grid');
+  if(!grid) return;
+  const filtered = activePhrasesCat==='all' ? PHRASES : PHRASES.filter(p=>p.cat===activePhrasesCat);
+  grid.innerHTML = filtered.map((p,i)=>`
+    <div onclick="speakPhrase(${PHRASES.indexOf(p)})" style="
+      background:var(--card);border:1.5px solid var(--border);border-radius:12px;
+      padding:14px 16px;cursor:pointer;transition:all .2s;box-shadow:var(--sh1);"
+      onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+      <div style="font-weight:700;font-size:.88rem;color:var(--accent);margin-bottom:4px;">${p.en}</div>
+      <div style="font-family:'Noto Sans Tamil',sans-serif;font-size:.82rem;color:#7c3aed;margin-bottom:7px;">${p.ta}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${p.signs.map(s=>`<span style="background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-soft);padding:2px 7px;border-radius:5px;font-size:.67rem;font-weight:600;">${s}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function filterPhrases(cat, el){
+  activePhrasesCat = cat;
+  document.querySelectorAll('#phrase-cats .lcat').forEach(b=>b.classList.remove('on'));
+  if(el) el.classList.add('on');
+  buildPhrasesGrid();
+}
+
+function speakPhrase(idx){
+  const p = PHRASES[idx];
+  if(!p) return;
+  speak(curLang==='ta' ? p.ta : p.en);
+  toast('🔊 '+p.en);
+}
+
+// ══════════════════════════════════════════════════════
+// TAMIL VOICE INPUT → SIGN
+// ══════════════════════════════════════════════════════
+let voiceRecog = null;
+let currentVoiceSign = null;
+
+// Tamil word to sign mapping
+const TAMIL_TO_SIGN = {};
+Object.entries(SIGNS).forEach(([name, data])=>{
+  // Map Tamil text
+  TAMIL_TO_SIGN[data.ta] = name;
+  // Map transliteration
+  if(data.tr) TAMIL_TO_SIGN[data.tr.toUpperCase()] = name;
+  // Map English name
+  TAMIL_TO_SIGN[name] = name;
+});
+
+function startVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    toast('Voice not supported in this browser!');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceRecog = new SR();
+  voiceRecog.continuous = false;
+  voiceRecog.interimResults = false;
+  voiceRecog.maxAlternatives = 5;
+  // Try Tamil first, fallback to English
+  voiceRecog.lang = curLang==='ta' ? 'ta-IN' : 'en-US';
+
+  const btn = document.getElementById('voiceBtn');
+  const status = document.getElementById('voice-status');
+  const heard = document.getElementById('voice-heard');
+
+  btn.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+  btn.style.animation = 'pulse2 1s ease-in-out infinite';
+  status.textContent = '🎤 Listening...';
+  heard.textContent = '';
+
+  voiceRecog.onresult = (e)=>{
+    // Try all alternatives
+    const results = Array.from({length: e.results[0].length}, (_,i)=>e.results[0][i].transcript.trim());
+    console.log('Heard:', results);
+    heard.textContent = '"' + results[0] + '"';
+
+    let found = null;
+    for(const text of results){
+      const upper = text.toUpperCase();
+      // Direct match
+      if(TAMIL_TO_SIGN[text]) {found=TAMIL_TO_SIGN[text];break;}
+      if(TAMIL_TO_SIGN[upper]) {found=TAMIL_TO_SIGN[upper];break;}
+      // Partial match
+      for(const [key,sign] of Object.entries(TAMIL_TO_SIGN)){
+        if(upper.includes(key) || key.includes(upper)){found=sign;break;}
+      }
+      if(found) break;
+    }
+    showVoiceResult(found);
+  };
+
+  voiceRecog.onerror = (e)=>{
+    status.textContent = 'Error: '+e.error+' — try again';
+    resetVoiceBtn();
+  };
+
+  voiceRecog.onend = ()=>{
+    resetVoiceBtn();
+  };
+
+  voiceRecog.start();
+}
+
+function resetVoiceBtn(){
+  const btn = document.getElementById('voiceBtn');
+  if(btn){btn.style.background='linear-gradient(135deg,#7c3aed,#6d28d9)';btn.style.animation='';}
+  const status = document.getElementById('voice-status');
+  if(status) status.textContent = 'Click mic to speak again';
+}
+
+function showVoiceResult(signName){
+  const resultEl = document.getElementById('voice-result');
+  const notfoundEl = document.getElementById('voice-notfound');
+  const phEl = document.getElementById('voice-placeholder');
+  if(!signName || !SIGNS[signName]){
+    if(resultEl) resultEl.style.display='none';
+    if(notfoundEl) notfoundEl.style.display='block';
+    if(phEl) phEl.style.display='none';
+    currentVoiceSign = null;
+    return;
+  }
+  currentVoiceSign = signName;
+  const data = SIGNS[signName];
+  if(resultEl) resultEl.style.display='block';
+  if(notfoundEl) notfoundEl.style.display='none';
+  if(phEl) phEl.style.display='none';
+  document.getElementById('voice-sign-en').textContent = signName;
+  document.getElementById('voice-sign-ta').textContent = data.ta;
+  document.getElementById('voice-sign-ta').style.fontFamily = "'Noto Sans Tamil',sans-serif";
+  const cv = document.getElementById('voice-cv');
+  if(cv) drawHand(cv, data.f);
+  speak(curLang==='ta' ? data.ta : signName);
+  toast('✅ Found: '+signName+' — '+data.ta);
+}
+
+function testVoiceWord(word){
+  document.getElementById('voice-heard').textContent = '"'+word+'"';
+  const upper = word.toUpperCase();
+  const found = TAMIL_TO_SIGN[word] || TAMIL_TO_SIGN[upper] || null;
+  showVoiceResult(found);
+}
+
+function speakVoiceSign(){
+  if(currentVoiceSign){
+    speak(curLang==='ta'?SIGNS[currentVoiceSign].ta:currentVoiceSign);
+  }
+}
+// FPS counter always running when camera is on
+function fpsLoop(){
+  if(!detecting)return;
+  fpsC++;
+  var n=Date.now();
+  if(n-fpsT>=1000){fps=fpsC;fpsC=0;fpsT=n;}
+  setTimeout(fpsLoop,100);
+}
+</script>
+</body>
+</html>

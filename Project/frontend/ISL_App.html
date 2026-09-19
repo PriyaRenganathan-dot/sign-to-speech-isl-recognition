@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISL Sign Recognition App</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#060d1a;--card:#0d1b2e;--border:#1a2e45;
+  --p1:#38bdf8;--p2:#0ea5e9;--green:#34d399;
+  --yellow:#fbbf24;--red:#f87171;--muted:#64748b;
+  --text:#e2e8f0;--text2:#94a3b8;
+}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── WELCOME SCREEN ─────────────────────────── */
+#welcome{
+  position:fixed;inset:0;z-index:1000;
+  background:linear-gradient(135deg,#060d1a 0%,#0a1628 50%,#060d1a 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:24px;text-align:center;padding:2rem;
+}
+.wlc-icon{font-size:5rem;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+.wlc-title{font-size:clamp(2rem,5vw,3.5rem);font-weight:700;line-height:1.1;}
+.wlc-title span{color:var(--p1);}
+.wlc-sub{color:var(--text2);font-size:1rem;}
+.wlc-ta{font-family:'Noto Sans Tamil',sans-serif;color:var(--p1);font-size:1.1rem;margin-top:-8px;}
+.wlc-tags{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:8px 0;}
+.wlc-tag{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);color:var(--p1);padding:6px 14px;border-radius:20px;font-size:0.8rem;}
+.wlc-btn{
+  background:var(--p1);color:#000;font-family:'Space Grotesk',sans-serif;
+  font-size:1.1rem;font-weight:700;padding:16px 48px;border-radius:14px;
+  border:none;cursor:pointer;transition:all 0.2s;margin-top:8px;
+}
+.wlc-btn:hover{background:#7dd3fc;transform:translateY(-2px);box-shadow:0 8px 24px rgba(56,189,248,0.4);}
+
+/* ── MAIN APP ───────────────────────────────── */
+#app{display:none;min-height:100vh;}
+
+/* Header */
+.hdr{
+  background:rgba(13,27,46,0.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);padding:12px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.hdr-logo{font-size:1.1rem;font-weight:700;color:var(--p1);}
+.hdr-badge{background:rgba(52,211,153,0.1);border:1px solid var(--green);color:var(--green);padding:4px 12px;border-radius:20px;font-size:0.75rem;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border);}
+.tab{padding:10px 20px;border-radius:10px 10px 0 0;font-size:0.9rem;font-weight:600;cursor:pointer;color:var(--muted);border:1px solid transparent;border-bottom:none;transition:all 0.2s;}
+.tab.active{background:var(--card);border-color:var(--border);color:var(--p1);}
+
+/* Panels */
+.panel{display:none;padding:24px;max-width:1200px;margin:0 auto;}
+.panel.active{display:block;}
+
+/* Camera Panel */
+.cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:768px){.cam-grid{grid-template-columns:1fr;}}
+
+.cam-box{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.cam-hd{padding:14px 18px;border-bottom:1px solid var(--border);font-weight:600;font-size:0.9rem;display:flex;align-items:center;gap:8px;}
+.cam-body{padding:16px;}
+
+.video-wrap{position:relative;background:#050d1a;border-radius:12px;overflow:hidden;aspect-ratio:4/3;}
+#vid{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;}
+.vid-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted);}
+.vid-idle-icon{font-size:3rem;}
+#fps-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.7);color:var(--green);font-size:0.7rem;padding:3px 8px;border-radius:6px;display:none;}
+#hand-badge{position:absolute;top:8px;left:8px;background:rgba(52,211,153,0.8);color:#000;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:6px;display:none;}
+
+.btn-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.btn{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:600;transition:all 0.2s;}
+.btn-primary{background:var(--p1);color:#000;}
+.btn-primary:hover{background:#7dd3fc;}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-stop{background:#1e3a4a;color:var(--p1);border:1px solid var(--p1);display:none;}
+.btn-stop:hover{background:rgba(56,189,248,0.1);}
+.btn-speak{background:rgba(251,191,36,0.15);color:var(--yellow);border:1px solid var(--yellow);}
+.btn-speak:hover{background:rgba(251,191,36,0.25);}
+
+/* Result display */
+.result-box{background:#050d1a;border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-top:14px;}
+#sign-en{font-size:2.5rem;font-weight:700;color:var(--p1);letter-spacing:2px;}
+#sign-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:1.6rem;color:var(--yellow);}
+#sign-conf{font-size:0.8rem;color:var(--muted);}
+.conf-bar{width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px;}
+.conf-fill{height:100%;background:var(--p1);border-radius:3px;transition:width 0.3s;width:0%;}
+
+/* Finger dots */
+.finger-row{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+.fdot{width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:var(--muted);transition:all 0.3s;}
+.fdot.on{background:var(--green);color:#000;}
+
+/* Sentence */
+.sentence-box{background:#050d1a;border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;}
+.sentence-label{font-size:0.75rem;color:var(--muted);margin-bottom:8px;}
+#sentence-text{font-size:1rem;color:var(--text);min-height:32px;word-break:break-word;}
+.sentence-actions{display:flex;gap:8px;margin-top:10px;}
+
+/* Sign library */
+.signs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:16px;}
+.sign-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.sign-card:hover{border-color:var(--p1);transform:translateY(-2px);}
+.sign-card-en{font-weight:700;font-size:0.95rem;color:var(--p1);}
+.sign-card-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:0.85rem;color:var(--yellow);margin-top:4px;}
+.sign-card-pat{font-size:0.75rem;color:var(--muted);margin-top:6px;letter-spacing:1px;}
+
+/* Python status badge */
+#py-badge{position:fixed;top:12px;right:12px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;z-index:99999;pointer-events:none;}
+
+/* Popup result */
+#py-popup{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:rgba(6,13,26,0.97);border:2px solid var(--p1);
+  border-radius:16px;padding:16px 32px;text-align:center;
+  z-index:9998;min-width:240px;pointer-events:none;
+  opacity:0;transition:opacity 0.3s;
+  box-shadow:0 8px 32px rgba(56,189,248,0.3);
+}
+#py-popup.show{opacity:1;}
+.popup-en{font-size:28px;font-weight:700;color:var(--p1);}
+.popup-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:22px;color:var(--yellow);margin-top:4px;}
+.popup-info{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* Toast */
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:10px 20px;border-radius:10px;font-size:0.85rem;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- WELCOME SCREEN -->
+<div id="welcome">
+  <div class="wlc-icon">🤟</div>
+  <div class="wlc-title">Sign <span>Recognition</span> App</div>
+  <div class="wlc-sub">Final Year Project — AI-Powered ISL ↔ Text</div>
+  <div class="wlc-ta">கையசைவு அங்கீகார பயன்பாடு</div>
+  <div class="wlc-tags">
+    <span class="wlc-tag">📷 Live Webcam</span>
+    <span class="wlc-tag">🇮🇳 Tamil + English</span>
+    <span class="wlc-tag">🔊 Shinchan Voice</span>
+    <span class="wlc-tag">🤖 Python Backend</span>
+  </div>
+  <button class="wlc-btn" id="enterBtn">Enter App →</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-logo">🤟 ISL Sign Recognition</div>
+    <div id="hdr-status" class="hdr-badge">Initializing...</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('detect',this)">📷 Sign → Text</div>
+    <div class="tab" onclick="switchTab('library',this)">📚 Sign Library</div>
+  </div>
+
+  <!-- DETECT PANEL -->
+  <div class="panel active" id="panel-detect">
+    <div class="cam-grid">
+
+      <!-- Camera -->
+      <div class="cam-box">
+        <div class="cam-hd">📷 Live Camera</div>
+        <div class="cam-body">
+          <div class="video-wrap">
+            <div class="vid-idle" id="vid-idle">
+              <div class="vid-idle-icon">📷</div>
+              <div style="color:var(--text2);font-size:0.9rem;">Click Start Camera</div>
+            </div>
+            <video id="vid" autoplay playsinline></video>
+            <canvas id="overlay" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+            <div id="fps-badge">0 fps</div>
+            <div id="hand-badge">✋ Hand Detected</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="camBtn" onclick="startCam()">▶ Start Camera</button>
+            <button class="btn btn-stop" id="stopBtn" onclick="stopCam()">⏹ Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="cam-box">
+        <div class="cam-hd">🧠 Detection Result</div>
+        <div class="cam-body">
+
+          <div class="result-box">
+            <div id="sign-en">—</div>
+            <div id="sign-ta">காத்திருக்கிறேன்</div>
+            <div id="sign-conf">Show your hand to detect</div>
+            <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+          </div>
+
+          <div class="finger-row">
+            <div class="fdot" id="fd0">T</div>
+            <div class="fdot" id="fd1">I</div>
+            <div class="fdot" id="fd2">M</div>
+            <div class="fdot" id="fd3">R</div>
+            <div class="fdot" id="fd4">P</div>
+          </div>
+
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn btn-speak" onclick="speakCurrent()">🔊 Speak</button>
+            <button class="btn" style="background:rgba(248,113,113,0.1);color:var(--red);border:1px solid var(--red);" onclick="clearAll()">🗑 Clear</button>
+          </div>
+
+          <div class="sentence-box">
+            <div class="sentence-label">📝 Sentence</div>
+            <div id="sentence-text">—</div>
+            <div class="sentence-actions">
+              <button class="btn btn-speak" style="font-size:0.78rem;padding:6px 14px;" onclick="speakSentence()">🔊 Speak All</button>
+              <button class="btn" style="font-size:0.78rem;padding:6px 14px;background:rgba(100,116,139,0.1);color:var(--muted);border:1px solid var(--border);" onclick="clearSentence()">Clear</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIBRARY PANEL -->
+  <div class="panel" id="panel-library">
+    <h2 style="margin-bottom:8px;">📚 Sign Library</h2>
+    <p style="color:var(--muted);font-size:0.9rem;">Click any sign to hear it spoken</p>
+    <div class="signs-grid" id="signs-grid"></div>
+  </div>
+</div>
+
+<!-- Python status -->
+<div id="py-badge"></div>
+<div id="py-popup"><div class="popup-en" id="pu-en"></div><div class="popup-ta" id="pu-ta"></div><div class="popup-info">Python Detected ✅</div></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script>
+// ── SIGN LIBRARY ──────────────────────────────────────────
+const SIGNS = {
+  'ZERO':     {f:[0,0,0,0,0],t:'பூஜ்யம்',tr:'Poojiyam'},
+  'ONE':      {f:[0,1,0,0,0],t:'ஒன்று',tr:'Ondru'},
+  'TWO':      {f:[0,1,1,0,0],t:'இரண்டு',tr:'Irandu'},
+  'THREE':    {f:[0,1,1,1,0],t:'மூன்று',tr:'Moondru'},
+  'FOUR':     {f:[0,1,1,1,1],t:'நான்கு',tr:'Naangu'},
+  'FIVE':     {f:[1,1,1,1,1],t:'ஐந்து',tr:'Aindhu'},
+  'HELLO':    {f:[1,1,1,1,1],t:'வணக்கம்',tr:'Vanakkam'},
+  'YES':      {f:[1,0,0,0,0],t:'ஆம்',tr:'Aam'},
+  'NO':       {f:[0,1,1,0,0],t:'இல்லை',tr:'Illai'},
+  'GOOD':     {f:[1,0,0,0,0],t:'நல்லது',tr:'Nalladu'},
+  'BAD':      {f:[0,0,0,0,1],t:'கெட்டது',tr:'Kettadu'},
+  'HELP':     {f:[0,1,0,0,0],t:'உதவி',tr:'Udavi'},
+  'WATER':    {f:[0,1,1,1,0],t:'தண்ணீர்',tr:'Thanneer'},
+  'FOOD':     {f:[1,1,1,0,0],t:'உணவு',tr:'Unavvu'},
+  'PLEASE':   {f:[1,1,1,1,0],t:'தயவுசெய்து',tr:'Thayavuseithu'},
+  'SORRY':    {f:[1,1,0,0,0],t:'மன்னிக்கவும்',tr:'Mannikkavum'},
+  'THANKS':   {f:[1,0,0,0,1],t:'நன்றி',tr:'Nandri'},
+  'LOVE':     {f:[1,1,0,0,1],t:'அன்பு',tr:'Anbu'},
+  'COME':     {f:[0,1,1,1,0],t:'வாருங்கள்',tr:'Varungal'},
+  'STOP':     {f:[1,1,1,1,1],t:'நிறுத்து',tr:'Niruthu'},
+  'EAT':      {f:[1,1,1,0,0],t:'சாப்பிட',tr:'Saapida'},
+  'SLEEP':    {f:[1,0,1,1,1],t:'தூக்கம்',tr:'Thookkam'},
+  'HAPPY':    {f:[1,1,1,1,0],t:'மகிழ்ச்சி',tr:'Magizhchi'},
+  'SAD':      {f:[0,1,0,0,1],t:'சோகம்',tr:'Sogam'},
+  'PAIN':     {f:[0,0,1,0,1],t:'வலி',tr:'Vali'},
+  'MOTHER':   {f:[1,0,1,0,1],t:'அம்மா',tr:'Amma'},
+  'FATHER':   {f:[0,1,0,1,0],t:'அப்பா',tr:'Appa'},
+  'DOCTOR':   {f:[1,1,0,1,0],t:'டாக்டர்',tr:'Doctor'},
+  'HOSPITAL': {f:[1,0,0,1,1],t:'மருத்துவமனை',tr:'Hospital'},
+  'WHAT':     {f:[0,1,0,1,0],t:'என்ன',tr:'Enna'},
+};
+
+// ── STATE ─────────────────────────────────────────────────
+let stream=null, mp=null, mpcam=null, detecting=false;
+let stableCnt=0, lastSign='', curSign='', curTa='';
+let sentence=[], fpsC=0, fpsT=Date.now();
+let voices=[], tamilVoice=null, engVoice=null;
+const STABLE=18;
+
+// ── ENTER APP — Simple direct switch ──────────────────────
+document.getElementById('enterBtn').addEventListener('click', function(){
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  initApp();
+});
+
+function initApp(){
+  buildLibrary();
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  initMediaPipe();
+  toast('Welcome to ISL Sign Recognition! 🤟');
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// ── MEDIAPIPE INIT ────────────────────────────────────────
+function initMediaPipe(){
+  setStatus('Loading MediaPipe...','#fbbf24');
+  try{
+    mp = new Hands({locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    mp.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.75,minTrackingConfidence:0.7});
+    mp.onResults(onResults);
+    mp.initialize().then(()=>{
+      setStatus('Ready ✓','#34d399');
+      document.getElementById('camBtn').disabled = false;
+      toast('MediaPipe loaded! Click Start Camera 📷');
+    }).catch(()=>{
+      setStatus('Offline mode','#fbbf24');
+      document.getElementById('camBtn').disabled = false;
+    });
+  }catch(e){
+    setStatus('Ready','#34d399');
+    document.getElementById('camBtn').disabled = false;
+  }
+}
+
+// ── CAMERA ────────────────────────────────────────────────
+async function startCam(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    const vid = document.getElementById('vid');
+    vid.srcObject = stream;
+    vid.style.display = 'block';
+    document.getElementById('vid-idle').style.display = 'none';
+    document.getElementById('camBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = 'inline-flex';
+    document.getElementById('fps-badge').style.display = 'block';
+    detecting = true;
+    setStatus('Detecting — Show hand!','#34d399');
+    if(mp){
+      const {Camera} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+      mpcam = new Camera(vid,{onFrame:async()=>{
+        if(!detecting)return;
+        fpsC++;
+        const now=Date.now();
+        if(now-fpsT>1000){
+          document.getElementById('fps-badge').textContent=fpsC+' fps';
+          fpsC=0; fpsT=now;
+        }
+        await mp.send({image:vid});
+      },width:640,height:480});
+      mpcam.start();
+    }
+    toast('Camera started! 📷');
+  }catch(e){
+    toast('Camera denied — allow in browser ❌');
+    setStatus('Camera denied','#f87171');
+  }
+}
+
+function stopCam(){
+  detecting=false;
+  if(mpcam){mpcam.stop();mpcam=null;}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  const vid=document.getElementById('vid');
+  vid.srcObject=null; vid.style.display='none';
+  document.getElementById('vid-idle').style.display='flex';
+  document.getElementById('camBtn').style.display='inline-flex';
+  document.getElementById('stopBtn').style.display='none';
+  document.getElementById('fps-badge').style.display='none';
+  document.getElementById('hand-badge').style.display='none';
+  setFingers([0,0,0,0,0]);
+  setStatus('Ready ✓','#34d399');
+}
+
+// ── MEDIAPIPE RESULTS ─────────────────────────────────────
+function onResults(res){
+  const canvas=document.getElementById('overlay');
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;
+  canvas.height=canvas.offsetHeight;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(!res.multiHandLandmarks||!res.multiHandLandmarks.length){
+    document.getElementById('hand-badge').style.display='none';
+    stableCnt=Math.max(0,stableCnt-2);
+    return;
+  }
+
+  document.getElementById('hand-badge').style.display='block';
+
+  // Draw skeleton
+  for(const lm of res.multiHandLandmarks){
+    drawConnectors(ctx,lm,HAND_CONNECTIONS,{color:'rgba(56,189,248,0.6)',lineWidth:2});
+    drawLandmarks(ctx,lm,{color:'#38bdf8',fillColor:'#0ea5e9',lineWidth:1,radius:4});
+  }
+
+  // Get fingers
+  const lm=res.multiHandLandmarks[0];
+  const label=res.multiHandedness[0].classification[0].label;
+  const fingers=getFingers(lm,label);
+  setFingers(fingers);
+
+  // Match sign
+  const {sign,ta,tr,conf}=matchSign(fingers);
+  if(sign){
+    if(sign===lastSign) stableCnt++;
+    else{lastSign=sign;stableCnt=1;}
+
+    // Show live
+    document.getElementById('sign-en').textContent=sign;
+    document.getElementById('sign-ta').textContent=ta;
+    document.getElementById('sign-conf').textContent=Math.round(conf*100)+'% confidence';
+    document.getElementById('conf-fill').style.width=Math.round(conf*100)+'%';
+
+    // Confirmed!
+    if(stableCnt===STABLE){
+      curSign=sign; curTa=ta;
+      stableCnt=0;
+      if(!sentence.length||sentence[sentence.length-1]!==sign){
+        sentence.push(sign);
+        document.getElementById('sentence-text').textContent=sentence.join(' | ');
+      }
+      speakSign(sign);
+      toast('✅ '+sign+' — '+ta);
+    }
+  } else {
+    stableCnt=Math.max(0,stableCnt-1);
+  }
+}
+
+// ── FINGER HELPERS ────────────────────────────────────────
+function getFingers(lm,hand){
+  const f=[];
+  f.push((hand==='Right')?(lm[4].x<lm[3].x?1:0):(lm[4].x>lm[3].x?1:0));
+  [[8,6],[12,10],[16,14],[20,18]].forEach(([t,p])=>f.push(lm[t].y<lm[p].y?1:0));
+  return f;
+}
+
+function matchSign(fingers){
+  let best=null,bt='',btr='',bs=0;
+  for(const [name,data] of Object.entries(SIGNS)){
+    const s=fingers.reduce((acc,v,i)=>acc+(v===data.f[i]?1:0),0)/5;
+    if(s>bs){bs=s;best=name;bt=data.t;btr=data.tr;}
+  }
+  return bs>=0.8?{sign:best,ta:bt,tr:btr,conf:bs}:{sign:null,ta:'',tr:'',conf:0};
+}
+
+function setFingers(f){
+  ['fd0','fd1','fd2','fd3','fd4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.classList.toggle('on',f[i]===1);
+  });
+}
+
+// ── SPEECH ───────────────────────────────────────────────
+function loadVoices(){
+  voices=window.speechSynthesis.getVoices();
+  tamilVoice=voices.find(v=>v.lang==='ta-IN')||voices.find(v=>v.lang.startsWith('ta'))||null;
+  engVoice=voices.find(v=>v.lang==='en-IN')||voices.find(v=>v.lang==='en-US')||voices.find(v=>v.lang.startsWith('en'))||null;
+}
+
+function speakSign(text){
+  if(!window.speechSynthesis)return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.pitch=2.0; u.rate=1.2; u.volume=1;
+  if(engVoice)u.voice=engVoice;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+function speakCurrent(){
+  if(curSign) speakSign(curSign);
+  else toast('No sign detected yet!');
+}
+
+function speakSentence(){
+  if(!sentence.length){toast('Sentence is empty!');return;}
+  speakSign(sentence.join(' '));
+}
+
+// ── UI HELPERS ────────────────────────────────────────────
+function clearAll(){
+  curSign='';curTa='';lastSign='';stableCnt=0;
+  document.getElementById('sign-en').textContent='—';
+  document.getElementById('sign-ta').textContent='காத்திருக்கிறேன்';
+  document.getElementById('sign-conf').textContent='Show your hand to detect';
+  document.getElementById('conf-fill').style.width='0%';
+  setFingers([0,0,0,0,0]);
+}
+
+function clearSentence(){
+  sentence=[];
+  document.getElementById('sentence-text').textContent='—';
+}
+
+function setStatus(text,color){
+  const el=document.getElementById('hdr-status');
+  el.textContent=text;
+  el.style.borderColor=color;
+  el.style.color=color;
+  el.style.background=color+'18';
+}
+
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── SIGN LIBRARY ──────────────────────────────────────────
+function buildLibrary(){
+  const grid=document.getElementById('signs-grid');
+  grid.innerHTML='';
+  for(const [name,data] of Object.entries(SIGNS)){
+    const card=document.createElement('div');
+    card.className='sign-card';
+    const pat=data.f.map((v,i)=>['T','I','M','R','P'][i]+(v?'↑':'↓')).join(' ');
+    card.innerHTML=`<div class="sign-card-en">${name}</div>
+      <div class="sign-card-ta">${data.t}</div>
+      <div class="sign-card-pat">${pat}</div>`;
+    card.onclick=()=>speakSign(name);
+    grid.appendChild(card);
+  }
+}
+
+// ── PYTHON BACKEND CONNECTION ─────────────────────────────
+(function(){
+  var ws=null,ok=false,tmr=null,cv=null,cx=null;
+
+  function badge(on){
+    var el=document.getElementById('py-badge');
+    el.textContent=on?'🟢 Python Connected':'🟡 Browser Mode';
+    el.style.cssText='position:fixed;top:12px;right:12px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;z-index:99999;pointer-events:none;background:'+(on?'#064e3b':'#1c1917')+';color:'+(on?'#34d399':'#fbbf24')+';border:1px solid '+(on?'#34d399':'#fbbf24')+';';
+  }
+
+  function connect(){
+    try{
+      ws=new WebSocket('ws://localhost:8000/ws');
+      ws.onopen=function(){ok=true;badge(true);startF();};
+      ws.onmessage=function(e){
+        try{
+          var d=JSON.parse(e.data);
+          if(d&&d.confirmed&&d.confirmed_sign) showPopup(d.confirmed_sign,d.confirmed_tamil||d.confirmed_tr||'');
+        }catch(x){}
+      };
+      ws.onclose=function(){ok=false;badge(false);stopF();setTimeout(connect,3000);};
+      ws.onerror=function(){ok=false;badge(false);};
+    }catch(x){badge(false);}
+  }
+
+  function startF(){
+    if(!cv){cv=document.createElement('canvas');cv.width=320;cv.height=240;cx=cv.getContext('2d');}
+    if(tmr)clearInterval(tmr);
+    tmr=setInterval(function(){
+      if(!ok||!ws||ws.readyState!==1)return;
+      var v=document.getElementById('vid');
+      if(!v||!v.srcObject||v.videoWidth===0)return;
+      try{cx.drawImage(v,0,0,320,240);ws.send(JSON.stringify({type:'frame',frame:cv.toDataURL('image/jpeg',0.6)}));}catch(x){}
+    },150);
+  }
+
+  function stopF(){if(tmr){clearInterval(tmr);tmr=null;}}
+
+  var ls='',cl=false;
+  function showPopup(en,ta){
+    document.getElementById('pu-en').textContent=en;
+    document.getElementById('pu-ta').textContent=ta;
+    var p=document.getElementById('py-popup');
+    p.classList.add('show');
+    clearTimeout(p._t);p._t=setTimeout(function(){p.classList.remove('show');},2500);
+    if(!cl&&en!==ls&&window.speechSynthesis){
+      ls=en;cl=true;setTimeout(function(){cl=false;},2000);
+      var u=new SpeechSynthesisUtterance(en);u.pitch=2;u.rate=1.2;
+      speechSynthesis.cancel();speechSynthesis.speak(u);
+    }
+  }
+
+  badge(false);
+  setTimeout(connect,1500);
+})();
+</script>
+</body>
+</html>

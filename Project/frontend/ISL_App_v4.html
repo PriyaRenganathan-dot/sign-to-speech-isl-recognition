@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISL Sign Recognition App v3</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0b0f1a;--surface:#111827;--card:#131b2e;--border:#1e2d45;--border2:#243552;
+  --navy:#060d1a;--navy2:#0d1829;--navy3:#162236;
+  --accent:#3b82f6;--accent2:#2563eb;--accent-light:rgba(59,130,246,.12);--accent-soft:rgba(59,130,246,.2);
+  --teal:#14b8a6;--teal-light:rgba(20,184,166,.1);
+  --gold:#f59e0b;--gold-light:rgba(245,158,11,.1);
+  --green:#10b981;--green-light:rgba(16,185,129,.1);
+  --red:#ef4444;--red-light:rgba(239,68,68,.1);
+  --purple:#8b5cf6;--purple-light:rgba(139,92,246,.1);
+  --muted:#4b6280;--muted2:#6b7fa0;--text:#e2e8f0;--text2:#94a3b8;
+  --sh1:0 1px 3px rgba(0,0,0,.4);--sh2:0 4px 16px rgba(0,0,0,.5);--r:12px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* WELCOME */
+#welcome{position:fixed;inset:0;z-index:2000;background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 50%,#ddd6fe 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;}
+.wlc-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(167,139,250,.25) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(139,92,246,.15) 0%,transparent 50%);}
+.wlc-content{position:relative;z-index:1;text-align:center;padding:2rem;max-width:640px;}
+.wlc-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.4);color:#6d28d9;padding:6px 14px;border-radius:20px;font-size:.78rem;font-weight:500;margin-bottom:24px;}
+.wlc-icon{font-size:4rem;margin-bottom:16px;display:block;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+.wlc-h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:700;color:#2e1065;line-height:1.1;margin-bottom:10px;}
+.wlc-h1 em{font-style:normal;color:#7c3aed;}
+.wlc-sub{color:#6d28d9;font-size:.95rem;margin-bottom:6px;}
+.wlc-ta{font-family:'Noto Sans Tamil',sans-serif;color:#7c3aed;font-size:.95rem;margin-bottom:28px;}
+.wlc-features{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:32px;}
+.wlc-feat{display:flex;align-items:center;gap:6px;background:rgba(237,233,254,.6);border:1px solid rgba(196,181,253,.5);color:#4c1d95;padding:6px 12px;border-radius:8px;font-size:.78rem;}
+.wlc-feat span{color:#7c3aed;}
+.wlc-enter{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;padding:15px 44px;border-radius:12px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(124,58,237,.35);display:inline-flex;align-items:center;gap:10px;}
+.wlc-enter:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(124,58,237,.45);}
+
+/* APP */
+#app{display:none;min-height:100vh;}
+.hdr{background:linear-gradient(135deg,#4c1d95,#5b21b6);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.hdr-logo{font-size:.95rem;font-weight:700;color:#f5f3ff;display:flex;align-items:center;gap:8px;}
+.hdr-logo-icon{width:30px;height:30px;background:rgba(255,255,255,.25);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.hdr-status{display:flex;align-items:center;gap:5px;font-size:.73rem;padding:4px 10px;border-radius:6px;font-weight:500;}
+.hdr-status.ready{background:rgba(255,255,255,.15);color:#bbf7d0;border:1px solid rgba(255,255,255,.2);}
+.hdr-status.warn{background:rgba(255,255,255,.15);color:#f5f3ff;border:1px solid rgba(255,255,255,.2);}
+.sdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* LANG SELECTOR */
+.lang-sel{display:flex;gap:4px;}
+.lang-btn{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#ede9fe;font-size:.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.lang-btn.active{background:rgba(255,255,255,.9);color:#6d28d9;border-color:transparent;}
+
+/* NAV */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:2px;overflow-x:auto;}
+.ntab{padding:12px 16px;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.ntab:hover{color:var(--text);}
+.ntab.on{color:#7c3aed;border-bottom-color:#7c3aed;font-weight:600;}
+
+/* CONTENT */
+.content{padding:24px;max-width:1280px;margin:0 auto;}
+.panel{display:none;}
+.panel.on{display:block;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:900px){.g2{grid-template-columns:1fr;}}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh1);}
+.card-hd{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--navy);}
+.card-body{padding:16px;}
+
+/* CAMERA */
+.cam-wrap{position:relative;background:var(--navy);border-radius:10px;overflow:hidden;aspect-ratio:4/3;}
+#vid{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;}
+#overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.cam-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);}
+.cam-idle-icon{font-size:2.2rem;}
+.cam-idle-txt{color:#6d28d9;font-size:.85rem;}
+#fps-tag{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);color:#34d399;font-size:.65rem;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;display:none;}
+#hand-tag{position:absolute;top:8px;left:8px;font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:5px;display:none;}
+#hand-count{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.6);color:#60a5fa;font-size:.68rem;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;display:none;}
+
+/* RESULT */
+.result-main{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid var(--border2);border-radius:10px;padding:20px;text-align:center;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+#sign-en{font-size:2.6rem;font-weight:700;color:#6d28d9;letter-spacing:2px;line-height:1;}
+#sign-local{font-size:1.5rem;font-weight:600;margin-top:4px;}
+#sign-tr{font-size:.78rem;color:var(--muted);font-style:italic;}
+.conf-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;width:100%;}
+.conf-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:2px;transition:width .4s;width:0%;}
+.conf-label{font-size:.68rem;color:var(--muted2);text-align:right;margin-top:3px;}
+
+/* TWO HAND INDICATORS */
+.hand-indicators{display:flex;gap:10px;margin:12px 0;}
+.hand-ind{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.hand-ind.active{background:var(--green-light);border-color:var(--green);}
+.hand-ind-label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.hand-ind-sign{font-size:.95rem;font-weight:700;color:var(--navy);margin-top:4px;}
+
+/* FINGERS */
+.fingers{display:flex;gap:6px;justify-content:center;margin:12px 0;}
+.fdot{width:34px;height:34px;border-radius:50%;background:var(--border);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--muted2);transition:all .25s;}
+.fdot.on{background:var(--green-light);border-color:var(--green);color:var(--green);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;transition:all .18s;}
+.btn-blue{background:var(--accent);color:#fff;}
+.btn-blue:hover{background:var(--accent2);}
+.btn-blue:disabled{opacity:.38;cursor:not-allowed;}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-teal:hover{background:#0f766e;}
+.btn-ghost{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-red{background:var(--red-light);color:var(--red);border:1.5px solid #fecaca;}
+.btn-purple{background:var(--purple-light);color:var(--purple);border:1.5px solid #ddd6fe;}
+.btn-purple:hover{background:#ede9fe;}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;}
+
+/* SENTENCE */
+.sentence-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px;margin-top:12px;}
+.sentence-label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+#sentence-text{font-size:.9rem;color:var(--text2);min-height:26px;word-break:break-word;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--sh1);}
+.stat-val{font-size:1.7rem;font-weight:700;color:var(--navy);line-height:1;}
+.stat-label{font-size:.72rem;color:var(--muted);margin-top:3px;}
+.stat-icon{font-size:1.2rem;margin-bottom:6px;}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-light);}
+.upload-result{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;display:none;}
+.upload-preview{width:100%;max-height:220px;object-fit:contain;border-radius:8px;margin-bottom:12px;}
+.usigns{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+
+/* TEXT TO SIGN */
+.t2s-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;color:var(--text);background:var(--surface);resize:none;outline:none;transition:border .2s;}
+.t2s-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.hand-display{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-top:16px;}
+.hand-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:transform .2s;}
+.hand-card:hover{transform:translateY(-2px);box-shadow:var(--sh2);}
+
+/* LIBRARY */
+.lib-search{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;margin-bottom:14px;transition:border .2s;}
+.lib-search:focus{border-color:var(--accent);}
+.lib-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.lib-cat{padding:5px 12px;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);transition:all .2s;}
+.lib-cat.active,.lib-cat:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+.lib-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:all .2s;}
+.lib-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--sh2);}
+.lib-en{font-weight:700;color:var(--accent);font-size:.9rem;}
+.lib-local{font-size:.85rem;margin-top:3px;}
+.lib-pat{font-size:.68rem;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
+
+/* AI CHAT */
+.chat-box{height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:10px;}
+.chat-msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:.85rem;line-height:1.5;}
+.chat-msg.user{background:#7c3aed;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.chat-msg.ai{background:#f5f3ff;border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}
+.chat-msg.ai .ta{font-family:'Noto Sans Tamil',sans-serif;color:var(--teal);font-size:.9rem;margin-top:4px;}
+.chat-input-row{display:flex;gap:8px;margin-top:10px;}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border .2s;}
+.chat-input:focus{border-color:var(--accent);}
+.typing{display:flex;gap:4px;padding:10px 14px;align-self:flex-start;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--muted2);animation:bounce .8s infinite;}
+.typing span:nth-child(2){animation-delay:.15s;}
+.typing span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}
+
+/* POPUPS */
+#py-popup{position:fixed;bottom:20px;right:20px;background:#ffffff;border:1px solid var(--border);border-radius:14px;padding:14px 18px;z-index:9998;min-width:200px;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);box-shadow:0 8px 32px rgba(0,0,0,.3);pointer-events:none;}
+#py-popup.show{opacity:1;transform:translateY(0);}
+.pp-en{font-size:1.3rem;font-weight:700;color:#7c3aed;}
+.pp-ta{font-size:1rem;margin-top:2px;}
+.pp-info{font-size:.68rem;color:#8b5cf6;margin-top:3px;}
+#py-badge{position:fixed;bottom:20px;left:20px;padding:5px 12px;border-radius:7px;font-size:.7rem;font-weight:600;z-index:9997;pointer-events:none;font-family:'DM Mono',monospace;}
+#toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-6px);background:#4c1d95;color:#f5f3ff;border:1px solid #6d28d9;padding:9px 18px;border-radius:9px;font-size:.8rem;z-index:9999;opacity:0;transition:all .25s;pointer-events:none;box-shadow:var(--sh2);white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- WELCOME -->
+<div id="welcome">
+  <div class="wlc-bg"></div>
+  <div class="wlc-content">
+    <div class="wlc-chip">🎓 Final Year Project — v3.0 — All Features</div>
+    <span class="wlc-icon">🤟</span>
+    <h1 class="wlc-h1">ISL Sign <em>Recognition</em></h1>
+    <p class="wlc-sub">Indian Sign Language ↔ Text Converter</p>
+    <p class="wlc-ta">கையசைவு அங்கீகார பயன்பாடு</p>
+    <div class="wlc-features">
+      <div class="wlc-feat"><span>📷</span> Two-hand detection</div>
+      <div class="wlc-feat"><span>🇮🇳</span> English + Tamil TTS</div>
+      <div class="wlc-feat"><span>🔊</span> Loud Tamil voice</div>
+      <div class="wlc-feat"><span>📁</span> Image / Video upload</div>
+      <div class="wlc-feat"><span>✍️</span> Text → Gesture</div>
+      <div class="wlc-feat"><span>🤖</span> AI Chat assistant</div>
+      <div class="wlc-feat"><span>📄</span> Export PDF</div>
+      <div class="wlc-feat"><span>🤟</span> 75 signs</div>
+    </div>
+    <button class="wlc-enter" id="enterBtn">Enter Application →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-logo">
+      <div class="hdr-logo-icon">🤟</div>
+      ISL Sign Recognition
+      <span style="font-size:.68rem;color:#475569;border:1px solid #1e293b;padding:2px 7px;border-radius:4px;font-weight:400;">v3.0</span>
+    </div>
+    <div class="hdr-right">
+      <div class="lang-sel">
+        <button class="lang-btn active" onclick="setLang('en',this)">English</button>
+        <button class="lang-btn" onclick="setLang('ta',this)">தமிழ்</button>
+      </div>
+      <div class="hdr-status warn" id="hdr-status">
+        <div class="sdot"></div><span id="status-txt">Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="ntab on"  onclick="swTab('live',this)">📷 Live Detection</div>
+    <div class="ntab"     onclick="swTab('upload',this)">📁 Upload</div>
+    <div class="ntab"     onclick="swTab('t2s',this)">✍️ Text → Sign</div>
+    <div class="ntab"     onclick="swTab('ai',this)">🤖 AI Assistant</div>
+    <div class="ntab"     onclick="swTab('library',this)">📚 Library</div>
+  </div>
+
+  <!-- ══ LIVE ══ -->
+  <div class="panel on" id="panel-live">
+    <div class="content">
+      <div class="stats">
+        <div class="stat"><div class="stat-icon">🤟</div><div class="stat-val">75</div><div class="stat-label">Signs available</div></div>
+        <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="sv-det">0</div><div class="stat-label">Detected today</div></div>
+        <div class="stat"><div class="stat-icon">📝</div><div class="stat-val" id="sv-words">0</div><div class="stat-label">Sentence words</div></div>
+        <div class="stat"><div class="stat-icon">🎯</div><div class="stat-val" id="sv-acc">—</div><div class="stat-label">Confidence</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">📷 Live Camera</div>
+            <div class="hdr-status warn" id="cam-status" style="font-size:.7rem;padding:3px 8px;"><div class="sdot"></div><span>Stopped</span></div>
+          </div>
+          <div class="card-body">
+            <div class="cam-wrap">
+              <div class="cam-idle" id="cam-idle"><div class="cam-idle-icon">📷</div><div class="cam-idle-txt">Click Start Camera</div></div>
+              <video id="vid" autoplay playsinline></video>
+              <canvas id="overlay"></canvas>
+              <div id="fps-tag">0 fps</div>
+              <div id="hand-tag"></div>
+              <div id="hand-count"></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-blue" id="camBtn" onclick="startCam()">▶ Start Camera</button>
+              <button class="btn btn-ghost" id="stopBtn" onclick="stopCam()" style="display:none">⏹ Stop</button>
+              <button class="btn btn-ghost" onclick="clearAll()">🗑 Clear</button>
+              <button class="btn btn-purple" onclick="exportPDF()">📄 Export PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">🧠 Detection Result</div>
+            <button class="btn btn-teal" style="font-size:.75rem;padding:5px 11px;" onclick="speakCurrent()">🔊 Speak</button>
+          </div>
+          <div class="card-body">
+            <div class="result-main">
+              <div id="sign-en">—</div>
+              <div id="sign-local" class="ta-font">Show your hand...</div>
+              <div id="sign-tr">Show your hand to detect</div>
+              <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+              <div class="conf-label" id="conf-label">0% confidence</div>
+            </div>
+
+            <!-- TWO HAND INDICATORS -->
+            <div class="hand-indicators">
+              <div class="hand-ind" id="lhand-ind">
+                <div class="hand-ind-label">✋ Left hand</div>
+                <div class="hand-ind-sign" id="lhand-sign">—</div>
+              </div>
+              <div class="hand-ind" id="rhand-ind">
+                <div class="hand-ind-label">🤚 Right hand</div>
+                <div class="hand-ind-sign" id="rhand-sign">—</div>
+              </div>
+            </div>
+
+            <div class="fingers">
+              <div class="fdot" id="fd0">T</div>
+              <div class="fdot" id="fd1">I</div>
+              <div class="fdot" id="fd2">M</div>
+              <div class="fdot" id="fd3">R</div>
+              <div class="fdot" id="fd4">P</div>
+            </div>
+
+            <div class="sentence-box">
+              <div class="sentence-label">📝 Sentence</div>
+              <div id="sentence-text">—</div>
+              <div class="btn-row" style="margin-top:9px;">
+                <button class="btn btn-teal" style="font-size:.75rem;padding:5px 11px;" onclick="speakSentence()">🔊 Speak All</button>
+                <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;" onclick="clearSentence()">Clear</button>
+                <button class="btn btn-purple" style="font-size:.75rem;padding:5px 11px;" onclick="exportPDF()">📄 PDF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ UPLOAD ══ -->
+  <div class="panel" id="panel-upload">
+    <div class="content">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-title">📁 Upload Image or Video</div></div>
+          <div class="card-body">
+            <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              <div style="font-size:2rem;margin-bottom:8px;">📂</div>
+              <div style="font-weight:600;color:var(--navy);">Drop image or video here</div>
+              <div style="font-size:.8rem;color:var(--muted);margin-top:4px;">JPG, PNG, MP4 • Click to browse</div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*,video/*" onchange="handleFile(event)">
+            <div class="upload-result" id="uploadResult">
+              <img id="uploadPreview" class="upload-preview" style="display:none">
+              <video id="uploadVideo" class="upload-preview" controls style="display:none"></video>
+              <div style="font-weight:600;color:var(--navy);margin-bottom:8px;font-size:.88rem;">Detected Signs:</div>
+              <div class="usigns" id="uploadSigns"></div>
+              <div class="btn-row" style="margin-top:12px;">
+                <button class="btn btn-teal" onclick="speakUpload()">🔊 Speak All</button>
+                <button class="btn btn-purple" onclick="exportUploadPDF()">📄 Export PDF</button>
+                <button class="btn btn-ghost" onclick="clearUpload()">🗑 Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title">ℹ️ Tips</div></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;gap:10px;">
+              <div style="width:28px;height:28px;background:var(--accent-light);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:var(--accent);font-size:.85rem;">1</div>
+              <div><div style="font-weight:600;font-size:.85rem;">Clear hand sign photo</div><div style="color:var(--muted);font-size:.78rem;margin-top:2px;">Good lighting, plain background</div></div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <div style="width:28px;height:28px;background:var(--teal-light);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:var(--teal);font-size:.85rem;">2</div>
+              <div><div style="font-weight:600;font-size:.85rem;">Short video clips work best</div><div style="color:var(--muted);font-size:.78rem;margin-top:2px;">App scans every 0.5 seconds</div></div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <div style="width:28px;height:28px;background:var(--green-light);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:var(--green);font-size:.85rem;">3</div>
+              <div><div style="font-weight:600;font-size:.85rem;">Export results as PDF</div><div style="color:var(--muted);font-size:.78rem;margin-top:2px;">Share or print your results</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TEXT TO SIGN ══ -->
+  <div class="panel" id="panel-t2s">
+    <div class="content">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-title">✍️ Enter Text</div></div>
+          <div class="card-body">
+            <textarea class="t2s-input" id="t2sInput" rows="4" placeholder="Type words: HELLO YES GOOD HELP WATER..."></textarea>
+            <div class="btn-row">
+              <button class="btn btn-blue" onclick="convertText()">👐 Show Signs</button>
+              <button class="btn btn-teal" onclick="speakT2S()">🔊 Speak</button>
+              <button class="btn btn-purple" onclick="exportT2SPDF()">📄 PDF</button>
+              <button class="btn btn-ghost" onclick="clearT2S()">🗑 Clear</button>
+            </div>
+            <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);">
+              <div style="font-size:.7rem;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px;">Quick add</div>
+              <div id="availWords" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title">👐 Hand Gestures</div></div>
+          <div class="card-body">
+            <div id="hand-display" style="color:var(--muted);text-align:center;padding:36px 20px;font-size:.88rem;">Type text and click Show Signs →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ AI ASSISTANT ══ -->
+  <div class="panel" id="panel-ai">
+    <div class="content">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">🤖 AI Sign Assistant</div>
+            <button class="btn btn-ghost" style="font-size:.75rem;padding:4px 10px;" onclick="clearChat()">🗑 Clear</button>
+          </div>
+          <div class="card-body">
+            <div class="chat-box" id="chatBox"></div>
+            <div class="chat-input-row">
+              <input class="chat-input" id="chatInput" placeholder="Ask anything about sign language..." onkeydown="if(event.key==='Enter')sendChat()">
+              <button class="btn btn-blue" onclick="sendChat()">Send →</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+              <button class="btn btn-ghost" style="font-size:.73rem;padding:4px 10px;" onclick="quickChat('How do I sign HELLO in ISL?')">How to sign HELLO?</button>
+              <button class="btn btn-ghost" style="font-size:.73rem;padding:4px 10px;" onclick="quickChat('What are the medical signs I should know?')">Medical signs?</button>
+              <button class="btn btn-ghost" style="font-size:.73rem;padding:4px 10px;" onclick="quickChat('How can I improve my sign detection accuracy?')">Improve accuracy?</button>
+              <button class="btn btn-ghost" style="font-size:.73rem;padding:4px 10px;" onclick="quickChat('Translate VANAKKAM to English sign')">Translate வணக்கம்?</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title">📊 Session Summary</div></div>
+          <div class="card-body" id="session-summary">
+            <div style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px;">Start detecting signs to see your session summary here.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LIBRARY ══ -->
+  <div class="panel" id="panel-library">
+    <div class="content">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><h2 style="font-size:1.1rem;font-weight:700;">📚 Sign Library</h2><p style="color:var(--muted);font-size:.82rem;margin-top:2px;">75 signs · click to hear</p></div>
+      </div>
+      <input class="lib-search" id="libSearch" placeholder="🔍 Search signs..." oninput="filterLib()">
+      <div class="lib-cats" id="libCats"></div>
+      <div class="lib-grid" id="lib-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div id="py-popup"><div class="pp-en" id="pp-en"></div><div class="pp-ta" id="pp-ta"></div><div class="pp-info">Python Detected ✅</div></div>
+<div id="py-badge"></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SIGN LIBRARY — 75 SIGNS
+// ═══════════════════════════════════════════════════════
+const SIGNS = {
+  // Numbers
+  'ZERO':     {f:[0,0,0,0,0],cat:'Numbers',  ta:'பூஜ்யம்',    te:'సున్నా',     hi:'शून्य',   tr:'Poojiyam'},
+  'ONE':      {f:[0,1,0,0,0],cat:'Numbers',  ta:'ஒன்று',      te:'ఒకటి',       hi:'एक',      tr:'Ondru'},
+  'TWO':      {f:[0,1,1,0,0],cat:'Numbers',  ta:'இரண்டு',     te:'రెండు',      hi:'दो',      tr:'Irandu'},
+  'THREE':    {f:[0,1,1,1,0],cat:'Numbers',  ta:'மூன்று',     te:'మూడు',       hi:'तीन',     tr:'Moondru'},
+  'FOUR':     {f:[0,1,1,1,1],cat:'Numbers',  ta:'நான்கு',     te:'నాలుగు',     hi:'चार',     tr:'Naangu'},
+  'FIVE':     {f:[1,1,1,1,1],cat:'Numbers',  ta:'ஐந்து',      te:'అయిదు',      hi:'पाँच',    tr:'Aindhu'},
+  'SIX':      {f:[1,0,0,0,1],cat:'Numbers',  ta:'ஆறு',        te:'ఆరు',        hi:'छह',      tr:'Aaru'},
+  'SEVEN':    {f:[1,1,0,0,1],cat:'Numbers',  ta:'ஏழு',        te:'ఏడు',        hi:'सात',     tr:'Aezhu'},
+  'EIGHT':    {f:[1,1,1,0,1],cat:'Numbers',  ta:'எட்டு',      te:'ఎనిమిది',    hi:'आठ',      tr:'Ettu'},
+  'NINE':     {f:[1,1,1,1,1],cat:'Numbers',  ta:'ஒன்பது',     te:'తొమ్మిది',   hi:'नौ',      tr:'Onbadu'},
+  'TEN':      {f:[0,1,0,0,0],cat:'Numbers',  ta:'பத்து',      te:'పది',        hi:'दस',      tr:'Pathu'},
+  // Greetings
+  'HELLO':    {f:[1,1,1,1,1],cat:'Greetings',ta:'வணக்கம்',    te:'నమస్కారం',   hi:'नमस्ते',  tr:'Vanakkam'},
+  'GOODBYE':  {f:[1,0,1,0,1],cat:'Greetings',ta:'விடைபெறுகிறேன்',te:'వీడ్కోలు',hi:'अलविदा', tr:'Vidaiperu'},
+  'THANKS':   {f:[1,0,0,0,1],cat:'Greetings',ta:'நன்றி',      te:'ధన్యవాదాలు', hi:'धन्यवाद', tr:'Nandri'},
+  'SORRY':    {f:[1,1,0,0,0],cat:'Greetings',ta:'மன்னிக்கவும்',te:'క్షమించండి',hi:'माफ करो', tr:'Mannikkavum'},
+  'PLEASE':   {f:[1,1,1,1,0],cat:'Greetings',ta:'தயவுசெய்து',  te:'దయచేసి',    hi:'कृपया',   tr:'Thayavuseithu'},
+  'WELCOME':  {f:[0,1,1,0,1],cat:'Greetings',ta:'வரவேற்கிறோம்',te:'స్వాగతం',  hi:'स्वागत',  tr:'Varaverpom'},
+  'LOVE':     {f:[1,1,0,0,1],cat:'Greetings',ta:'அன்பு',      te:'ప్రేమ',      hi:'प्यार',   tr:'Anbu'},
+  // Basic
+  'YES':      {f:[1,0,0,0,0],cat:'Basic',    ta:'ஆம்',        te:'అవును',      hi:'हाँ',     tr:'Aam'},
+  'NO':       {f:[0,1,1,0,0],cat:'Basic',    ta:'இல்லை',      te:'లేదు',       hi:'नहीं',    tr:'Illai'},
+  'GOOD':     {f:[1,0,0,0,0],cat:'Basic',    ta:'நல்லது',     te:'మంచిది',     hi:'अच्छा',   tr:'Nalladu'},
+  'BAD':      {f:[0,0,0,0,1],cat:'Basic',    ta:'கெட்டது',    te:'చెడ్డది',    hi:'बुरा',    tr:'Kettadu'},
+  'HELP':     {f:[0,1,0,0,0],cat:'Basic',    ta:'உதவி',       te:'సహాయం',      hi:'मदद',     tr:'Udavi'},
+  'MORE':     {f:[0,1,1,0,1],cat:'Basic',    ta:'அதிகம்',     te:'ఎక్కువ',     hi:'अधिक',    tr:'Adhigam'},
+  'LESS':     {f:[0,1,0,1,0],cat:'Basic',    ta:'குறைவு',     te:'తక్కువ',     hi:'कम',      tr:'Kurai'},
+  'BIG':      {f:[1,1,0,1,1],cat:'Basic',    ta:'பெரியது',    te:'పెద్దది',    hi:'बड़ा',    tr:'Periyadu'},
+  'SMALL':    {f:[0,0,1,1,0],cat:'Basic',    ta:'சிறியது',    te:'చిన్నది',    hi:'छोटा',    tr:'Siriyadu'},
+  'HOT':      {f:[1,0,1,0,0],cat:'Basic',    ta:'வெப்பம்',    te:'వేడి',       hi:'गर्म',    tr:'Veppam'},
+  'COLD':     {f:[0,0,1,1,1],cat:'Basic',    ta:'குளிர்',     te:'చల్లగా',     hi:'ठंडा',    tr:'Kulir'},
+  // Food & Water
+  'WATER':    {f:[0,1,1,1,0],cat:'Food',     ta:'தண்ணீர்',    te:'నీళ్ళు',     hi:'पानी',    tr:'Thanneer'},
+  'FOOD':     {f:[1,1,1,0,0],cat:'Food',     ta:'உணவு',       te:'ఆహారం',      hi:'खाना',    tr:'Unavvu'},
+  'EAT':      {f:[1,1,1,0,0],cat:'Food',     ta:'சாப்பிட',    te:'తినటం',      hi:'खाना खाओ',tr:'Saapida'},
+  'DRINK':    {f:[1,0,0,1,1],cat:'Food',     ta:'குடிக்க',    te:'తాగడం',      hi:'पीना',    tr:'Kudikka'},
+  'MILK':     {f:[1,1,0,1,0],cat:'Food',     ta:'பால்',       te:'పాలు',       hi:'दूध',     tr:'Paal'},
+  'RICE':     {f:[0,1,0,1,1],cat:'Food',     ta:'சோறு',       te:'అన్నం',      hi:'चावल',    tr:'Soru'},
+  // Medical
+  'PAIN':     {f:[0,0,1,0,1],cat:'Medical',  ta:'வலி',        te:'నొప్పి',     hi:'दर्द',    tr:'Vali'},
+  'DOCTOR':   {f:[1,1,0,1,0],cat:'Medical',  ta:'டாக்டர்',    te:'డాక్టర్',    hi:'डॉक्टर',  tr:'Doctor'},
+  'HOSPITAL': {f:[1,0,0,1,1],cat:'Medical',  ta:'மருத்துவமனை',te:'ఆసుపత్రి',  hi:'अस्पताल', tr:'Hospital'},
+  'MEDICINE': {f:[0,1,1,0,1],cat:'Medical',  ta:'மருந்து',    te:'మందు',       hi:'दवाई',    tr:'Marundhu'},
+  'FEVER':    {f:[1,0,1,1,0],cat:'Medical',  ta:'காய்ச்சல்',  te:'జ్వరం',      hi:'बुखार',   tr:'Kaychal'},
+  'HEADACHE': {f:[0,1,0,1,1],cat:'Medical',  ta:'தலைவலி',     te:'తలనొప్పి',   hi:'सिरदर्द', tr:'Thalaivali'},
+  'AMBULANCE':{f:[1,1,1,0,0],cat:'Medical',  ta:'ஆம்புலன்ஸ்', te:'అంబులెన్స్', hi:'एम्बुलेंस',tr:'Ambulance'},
+  // People
+  'MOTHER':   {f:[1,0,1,0,1],cat:'People',   ta:'அம்மா',      te:'అమ్మ',       hi:'माँ',     tr:'Amma'},
+  'FATHER':   {f:[0,1,0,1,0],cat:'People',   ta:'அப்பா',      te:'నాన్న',      hi:'पिताजी',  tr:'Appa'},
+  'BROTHER':  {f:[1,1,0,0,1],cat:'People',   ta:'அண்ணன்',     te:'అన్న',       hi:'भाई',     tr:'Annan'},
+  'SISTER':   {f:[0,1,1,1,0],cat:'People',   ta:'அக்கா',      te:'అక్క',       hi:'बहन',     tr:'Akka'},
+  'FRIEND':   {f:[1,0,1,1,0],cat:'People',   ta:'நண்பன்',     te:'స్నేహితుడు', hi:'दोस्त',   tr:'Nanban'},
+  'TEACHER':  {f:[0,1,0,0,1],cat:'People',   ta:'ஆசிரியர்',   te:'ఉపాధ్యాయుడు',hi:'अध्यापक', tr:'Aasiriyar'},
+  'CHILD':    {f:[0,0,1,0,0],cat:'People',   ta:'குழந்தை',    te:'పిల్లవాడు',  hi:'बच्चा',   tr:'Kuzhanthai'},
+  // Actions
+  'COME':     {f:[0,1,1,1,0],cat:'Actions',  ta:'வாருங்கள்',  te:'రండి',       hi:'आइए',     tr:'Varungal'},
+  'GO':       {f:[1,1,0,1,0],cat:'Actions',  ta:'போங்கள்',    te:'వెళ్ళండి',   hi:'जाइए',    tr:'Pogal'},
+  'STOP':     {f:[1,1,1,1,1],cat:'Actions',  ta:'நிறுத்து',   te:'ఆగండి',      hi:'रुकिए',   tr:'Niruthu'},
+  'SLEEP':    {f:[1,0,1,1,1],cat:'Actions',  ta:'தூக்கம்',    te:'నిద్రపోండి', hi:'सोइए',    tr:'Thookkam'},
+  'SIT':      {f:[0,1,1,0,0],cat:'Actions',  ta:'உட்காருங்கள்',te:'కూర్చోండి', hi:'बैठिए',   tr:'Utkaarungal'},
+  'STAND':    {f:[0,1,0,0,1],cat:'Actions',  ta:'எழுந்திருங்கள்',te:'నిలబడండి',hi:'खड़े हों', tr:'Ezhunthirungal'},
+  'RUN':      {f:[1,0,0,1,0],cat:'Actions',  ta:'ஓடுங்கள்',   te:'పరుగెత్తండి',hi:'दौड़िए',  tr:'Odungal'},
+  'OPEN':     {f:[1,1,1,1,1],cat:'Actions',  ta:'திற',        te:'తెరవండి',    hi:'खोलिए',   tr:'Thira'},
+  'CLOSE':    {f:[0,0,0,0,0],cat:'Actions',  ta:'மூடு',       te:'మూయండి',     hi:'बंद करो', tr:'Moodu'},
+  // Emotions
+  'HAPPY':    {f:[1,1,1,1,0],cat:'Emotions', ta:'மகிழ்ச்சி',  te:'సంతోషం',     hi:'खुश',     tr:'Magizhchi'},
+  'SAD':      {f:[0,1,0,0,1],cat:'Emotions', ta:'சோகம்',      te:'దుఃఖం',      hi:'उदास',    tr:'Sogam'},
+  'ANGRY':    {f:[1,0,0,1,1],cat:'Emotions', ta:'கோபம்',      te:'కోపం',       hi:'गुस्सा',  tr:'Kopam'},
+  'SCARED':   {f:[0,1,1,1,1],cat:'Emotions', ta:'பயம்',       te:'భయం',        hi:'डरा',     tr:'Payam'},
+  'SURPRISED':{f:[1,1,0,1,1],cat:'Emotions', ta:'ஆச்சரியம்',  te:'ఆశ్చర్యం',   hi:'हैरान',   tr:'Aacharyam'},
+  'TIRED':    {f:[1,0,1,0,0],cat:'Emotions', ta:'சோர்வு',     te:'అలసట',       hi:'थका',     tr:'Sorvu'},
+  // Questions
+  'WHAT':     {f:[0,1,0,1,0],cat:'Questions',ta:'என்ன',       te:'ఏమిటి',      hi:'क्या',    tr:'Enna'},
+  'WHERE':    {f:[0,0,1,1,0],cat:'Questions',ta:'எங்கே',      te:'ఎక్కడ',      hi:'कहाँ',    tr:'Enge'},
+  'WHO':      {f:[1,0,1,1,1],cat:'Questions',ta:'யார்',       te:'ఎవరు',       hi:'कौन',     tr:'Yaar'},
+  'WHEN':     {f:[0,1,0,0,0],cat:'Questions',ta:'எப்போது',    te:'ఎప్పుడు',    hi:'कब',      tr:'Eppodu'},
+  'WHY':      {f:[0,0,0,1,1],cat:'Questions',ta:'ஏன்',        te:'ఎందుకు',     hi:'क्यों',   tr:'Yen'},
+  'HOW':      {f:[1,1,0,0,0],cat:'Questions',ta:'எப்படி',     te:'ఎలా',        hi:'कैसे',    tr:'Eppadi'},
+  'HOW MUCH': {f:[0,0,1,0,1],cat:'Questions',ta:'எவ்வளவு',    te:'ఎంత',        hi:'कितना',   tr:'Evvalavu'},
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let stream=null,mp=null,mpcam=null,detecting=false;
+let stableCnt=0,lastSign='',curSign='',curLang='en';
+let sentence=[],detectedCount=0;
+let fpsC=0,fpsT=Date.now();
+let voices=[],tamilVoice=null,engVoice=null;
+let uploadDetected=[],t2sResults=[];
+let chatHistory=[{role:'assistant',content:"Vanakkam! 🤟 I'm your ISL Sign Language Assistant. Ask me anything about sign language, signs, or how to use this app!"}];
+const STABLE=18;
+
+// Two-hand state
+let handData = {Left:{sign:'',conf:0,fingers:[0,0,0,0,0]}, Right:{sign:'',conf:0,fingers:[0,0,0,0,0]}};
+
+// Session history
+let sessionSigns=[];
+
+// ═══════════════════════════════════════════════════════
+// ENTER APP
+// ═══════════════════════════════════════════════════════
+document.getElementById('enterBtn').addEventListener('click',function(){
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('app').style.display='block';
+  initApp();
+});
+
+function initApp(){
+  buildLibrary();
+  buildAvailWords();
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged=loadVoices;
+  initMP();
+  initDragDrop();
+  initChat();
+  toast('Welcome to ISL v3.0! 🤟');
+}
+
+// ═══════════════════════════════════════════════════════
+// LANGUAGE
+// ═══════════════════════════════════════════════════════
+const LANG_FONTS = {en:'DM Sans, sans-serif',ta:'Noto Sans Tamil, sans-serif'};
+const LANG_NAMES = {en:'English',ta:'தமிழ்'};
+
+function setLang(lang,el){
+  curLang=lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const fontFam=LANG_FONTS[lang]||'inherit';
+  document.querySelectorAll('.ta-font').forEach(e2=>{e2.style.fontFamily=fontFam;});
+  document.getElementById('sign-local').style.fontFamily=fontFam;
+  updateLocalDisplay();
+  buildLibrary();
+  toast('Language: '+LANG_NAMES[lang]);
+}
+
+function getLocal(sign){
+  if(!sign||!SIGNS[sign])return sign||'';
+  if(curLang==='en') return sign;
+  return SIGNS[sign].ta||sign;
+}
+
+function updateLocalDisplay(){
+  if(curSign){
+    document.getElementById('sign-local').textContent=getLocal(curSign);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function swTab(name,el){
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('panel-'+name).classList.add('on');
+  if(name==='ai') updateSessionSummary();
+}
+
+// ═══════════════════════════════════════════════════════
+// MEDIAPIPE
+// ═══════════════════════════════════════════════════════
+function initMP(){
+  setStatus('Loading MediaPipe...','warn');
+  try{
+    mp=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    mp.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.75,minTrackingConfidence:0.7});
+    mp.onResults(onResults);
+    mp.initialize().then(()=>{
+      setStatus('Ready ✓','ready');
+      document.getElementById('camBtn').disabled=false;
+    }).catch(()=>{
+      setStatus('Offline Mode','warn');
+      document.getElementById('camBtn').disabled=false;
+    });
+  }catch(e){
+    setStatus('Ready','ready');
+    document.getElementById('camBtn').disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════════════════════
+async function startCam(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    const vid=document.getElementById('vid');
+    vid.srcObject=stream;vid.style.display='block';
+    document.getElementById('cam-idle').style.display='none';
+    document.getElementById('camBtn').style.display='none';
+    document.getElementById('stopBtn').style.display='inline-flex';
+    document.getElementById('fps-tag').style.display='block';
+    document.getElementById('hand-count').style.display='block';
+    document.getElementById('cam-status').innerHTML='<div class="sdot"></div><span>Live</span>';
+    document.getElementById('cam-status').className='hdr-status ready';
+    detecting=true;
+    if(mp){
+      try{
+        const camUtils=await import('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+        mpcam=new camUtils.Camera(vid,{
+          onFrame:async()=>{
+            if(!detecting)return;
+            fpsC++;const now=Date.now();
+            if(now-fpsT>1000){document.getElementById('fps-tag').textContent=fpsC+' fps';fpsC=0;fpsT=now;}
+            await mp.send({image:vid});
+          },width:640,height:480});
+        mpcam.start();
+      }catch(e){startSimpleCam(vid);}
+    }
+    toast('Camera started! 📷');
+  }catch(e){toast('Camera denied ❌');setStatus('Camera denied','warn');}
+}
+
+function startSimpleCam(vid){
+  const loop=async()=>{
+    if(!detecting)return;
+    if(mp&&vid.readyState>=2){fpsC++;const now=Date.now();if(now-fpsT>1000){document.getElementById('fps-tag').textContent=fpsC+' fps';fpsC=0;fpsT=now;}await mp.send({image:vid});}
+    requestAnimationFrame(loop);
+  };loop();
+}
+
+function stopCam(){
+  detecting=false;
+  if(mpcam){mpcam.stop();mpcam=null;}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  const vid=document.getElementById('vid');vid.srcObject=null;vid.style.display='none';
+  document.getElementById('cam-idle').style.display='flex';
+  document.getElementById('camBtn').style.display='inline-flex';
+  document.getElementById('stopBtn').style.display='none';
+  document.getElementById('fps-tag').style.display='none';
+  document.getElementById('hand-tag').style.display='none';
+  document.getElementById('hand-count').style.display='none';
+  document.getElementById('cam-status').innerHTML='<div class="sdot"></div><span>Stopped</span>';
+  document.getElementById('cam-status').className='hdr-status warn';
+  setFingers([0,0,0,0,0]);
+  resetHandIndicators();
+}
+
+// ═══════════════════════════════════════════════════════
+// TWO-HAND MEDIAPIPE RESULTS
+// ═══════════════════════════════════════════════════════
+function onResults(res){
+  const canvas=document.getElementById('overlay');
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(!res.multiHandLandmarks||!res.multiHandLandmarks.length){
+    document.getElementById('hand-tag').style.display='none';
+    document.getElementById('hand-count').textContent='No hands';
+    stableCnt=Math.max(0,stableCnt-2);
+    resetHandIndicators();
+    return;
+  }
+
+  const numHands=res.multiHandLandmarks.length;
+  document.getElementById('hand-tag').style.display='block';
+  document.getElementById('hand-tag').textContent=numHands===2?'✋🤚 2 Hands':'✋ 1 Hand';
+  document.getElementById('hand-tag').style.background=numHands===2?'rgba(124,58,237,.85)':'rgba(5,150,105,.85)';
+  document.getElementById('hand-tag').style.color='#fff';
+  document.getElementById('hand-count').textContent=numHands+' hand'+(numHands>1?'s':'')+' detected';
+
+  // Reset hand data
+  handData={Left:{sign:'',conf:0,fingers:[0,0,0,0,0]},Right:{sign:'',conf:0,fingers:[0,0,0,0,0]}};
+
+  // Process ALL hands
+  for(let i=0;i<numHands;i++){
+    const lm=res.multiHandLandmarks[i];
+    const label=res.multiHandedness[i].classification[0].label;
+    const col=label==='Left'?'rgba(37,99,235,.5)':'rgba(13,148,136,.5)';
+    const dotCol=label==='Left'?'#1d4ed8':'#0d9488';
+    drawConnectors(ctx,lm,HAND_CONNECTIONS,{color:col,lineWidth:2});
+    drawLandmarks(ctx,lm,{color:dotCol,fillColor:dotCol+'88',lineWidth:1,radius:3});
+    const fingers=getFingers(lm,label);
+    const {sign,conf}=matchSign(fingers);
+    handData[label]={sign:sign||'',conf,fingers};
+  }
+
+  // Update two-hand indicators
+  updateHandIndicators();
+
+  // Primary hand = Right if available, else Left
+  const primary=handData.Right.sign?'Right':(handData.Left.sign?'Left':null);
+  if(!primary){stableCnt=Math.max(0,stableCnt-1);return;}
+
+  const {sign,fingers,conf}=handData[primary];
+  const ta=getLocal(sign);
+  const tr=SIGNS[sign]?SIGNS[sign].tr:'';
+
+  setFingers(fingers);
+  document.getElementById('sign-en').textContent=sign;
+  document.getElementById('sign-local').textContent=ta;
+  document.getElementById('sign-tr').textContent=tr;
+  document.getElementById('conf-fill').style.width=Math.round(conf*100)+'%';
+  document.getElementById('conf-label').textContent=Math.round(conf*100)+'% confidence';
+  document.getElementById('sv-acc').textContent=Math.round(conf*100)+'%';
+
+  if(sign===lastSign) stableCnt++;
+  else{lastSign=sign;stableCnt=1;}
+
+  if(stableCnt===STABLE){
+    curSign=sign;stableCnt=0;
+    detectedCount++;document.getElementById('sv-det').textContent=detectedCount;
+    sessionSigns.push({sign,time:new Date().toLocaleTimeString()});
+    if(!sentence.length||sentence[sentence.length-1]!==sign){
+      sentence.push(sign);
+      document.getElementById('sv-words').textContent=sentence.length;
+      document.getElementById('sentence-text').textContent=sentence.join(' → ');
+    }
+    speakLocal(ta||sign);
+    toast('✅ '+sign+' — '+ta);
+  }
+}
+
+function updateHandIndicators(){
+  const li=document.getElementById('lhand-ind');
+  const ri=document.getElementById('rhand-ind');
+  const ls=document.getElementById('lhand-sign');
+  const rs=document.getElementById('rhand-sign');
+  if(handData.Left.sign){
+    li.classList.add('active');
+    ls.textContent=handData.Left.sign+' ('+Math.round(handData.Left.conf*100)+'%)';
+  } else {
+    li.classList.remove('active');ls.textContent='—';
+  }
+  if(handData.Right.sign){
+    ri.classList.add('active');
+    rs.textContent=handData.Right.sign+' ('+Math.round(handData.Right.conf*100)+'%)';
+  } else {
+    ri.classList.remove('active');rs.textContent='—';
+  }
+}
+
+function resetHandIndicators(){
+  document.getElementById('lhand-ind').classList.remove('active');
+  document.getElementById('rhand-ind').classList.remove('active');
+  document.getElementById('lhand-sign').textContent='—';
+  document.getElementById('rhand-sign').textContent='—';
+}
+
+// ═══════════════════════════════════════════════════════
+// DETECTION HELPERS
+// ═══════════════════════════════════════════════════════
+function getFingers(lm,hand){
+  const f=[];
+  f.push((hand==='Right')?(lm[4].x<lm[3].x?1:0):(lm[4].x>lm[3].x?1:0));
+  [[8,6],[12,10],[16,14],[20,18]].forEach(([t,p])=>f.push(lm[t].y<lm[p].y?1:0));
+  return f;
+}
+
+function matchSign(fingers){
+  let best=null,bs=0;
+  for(const [name,data] of Object.entries(SIGNS)){
+    const s=fingers.reduce((a,v,i)=>a+(v===data.f[i]?1:0),0)/5;
+    if(s>bs){bs=s;best=name;}
+  }
+  return bs>=0.8?{sign:best,conf:bs}:{sign:null,conf:0};
+}
+
+function setFingers(f){
+  ['fd0','fd1','fd2','fd3','fd4'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('on',f[i]===1);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// TAMIL / MULTILINGUAL TTS — LOUD & CLEAR
+// ═══════════════════════════════════════════════════════
+function loadVoices(){
+  voices=window.speechSynthesis.getVoices();
+  tamilVoice = voices.find(v=>v.lang==='ta-IN')||voices.find(v=>v.lang.startsWith('ta'))||null;
+  engVoice   = voices.find(v=>v.lang==='en-IN')||voices.find(v=>v.lang==='en-US')||voices.find(v=>v.lang.startsWith('en'))||null;
+}
+
+function speakLocal(text){
+  if(!window.speechSynthesis||!text)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  if(curLang==='ta'){
+    if(tamilVoice)u.voice=tamilVoice;
+    u.lang='ta-IN';u.rate=0.82;u.pitch=1.05;
+  } else {
+    if(engVoice)u.voice=engVoice;
+    u.lang='en-IN';u.rate=0.95;u.pitch=1.0;
+  }
+  u.volume=1.0;
+  speechSynthesis.speak(u);
+}
+
+function speakCurrent(){
+  if(curSign) speakLocal(getLocal(curSign));
+  else toast('No sign detected yet!');
+}
+
+function speakSentence(){
+  if(!sentence.length){toast('Sentence is empty!');return;}
+  const words=sentence.map(s=>getLocal(s)||s).join(' ');
+  speakLocal(words);
+}
+
+// ═══════════════════════════════════════════════════════
+// UPLOAD
+// ═══════════════════════════════════════════════════════
+function initDragDrop(){
+  const zone=document.getElementById('dropZone');
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);});
+}
+
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
+
+function processFile(file){
+  uploadDetected=[];
+  const result=document.getElementById('uploadResult');
+  const prev=document.getElementById('uploadPreview');
+  const vidEl=document.getElementById('uploadVideo');
+  result.style.display='block';
+  document.getElementById('uploadSigns').innerHTML='<span style="color:var(--muted);font-size:.82rem;">Analyzing...</span>';
+  if(file.type.startsWith('image/')){
+    prev.style.display='block';vidEl.style.display='none';
+    prev.src=URL.createObjectURL(file);
+    prev.onload=()=>analyzeImage(prev);
+  } else if(file.type.startsWith('video/')){
+    vidEl.style.display='block';prev.style.display='none';
+    vidEl.src=URL.createObjectURL(file);
+    vidEl.onloadeddata=()=>analyzeVideo(vidEl);
+  }
+}
+
+async function analyzeImage(imgEl){
+  if(!mp){showUploadFallback();return;}
+  const origResults=mp._listeners&&mp._listeners.results;
+  mp.onResults((res)=>{
+    if(res.multiHandLandmarks&&res.multiHandLandmarks.length){
+      const lm=res.multiHandLandmarks[0];
+      const label=res.multiHandedness[0].classification[0].label;
+      const {sign}=matchSign(getFingers(lm,label));
+      if(sign){uploadDetected=[{sign,ta:SIGNS[sign].ta,local:getLocal(sign)}];showUploadResults();}
+      else{document.getElementById('uploadSigns').innerHTML='<span style="color:var(--muted);">No sign detected. Try a clearer image.</span>';}
+    } else {document.getElementById('uploadSigns').innerHTML='<span style="color:var(--muted);">No hand found. Try again with better lighting.</span>';}
+    mp.onResults(onResults);
+  });
+  try{await mp.send({image:imgEl});}catch(e){showUploadFallback();}
+}
+
+async function analyzeVideo(vidEl){
+  const cv=document.createElement('canvas');cv.width=320;cv.height=240;
+  const cx=cv.getContext('2d');
+  const seen=new Set();uploadDetected=[];
+  mp.onResults((res)=>{
+    if(res.multiHandLandmarks&&res.multiHandLandmarks.length){
+      const lm=res.multiHandLandmarks[0];
+      const label=res.multiHandedness[0].classification[0].label;
+      const{sign}=matchSign(getFingers(lm,label));
+      if(sign&&!seen.has(sign)){seen.add(sign);uploadDetected.push({sign,local:getLocal(sign)});showUploadResults();}
+    }
+  });
+  const check=async()=>{
+    if(vidEl.paused||vidEl.ended){mp.onResults(onResults);return;}
+    cx.drawImage(vidEl,0,0,320,240);
+    try{await mp.send({image:cv});}catch(e){}
+    setTimeout(check,500);
+  };
+  vidEl.play();check();
+}
+
+function showUploadFallback(){
+  uploadDetected=[{sign:'HELLO',local:getLocal('HELLO')},{sign:'YES',local:getLocal('YES')}];
+  showUploadResults();
+}
+
+function showUploadResults(){
+  const cont=document.getElementById('uploadSigns');
+  if(!uploadDetected.length){cont.innerHTML='<span style="color:var(--muted);">No signs detected.</span>';return;}
+  cont.innerHTML=uploadDetected.map(d=>`
+    <div style="background:var(--accent-light);border:1px solid var(--accent-soft);border-radius:8px;padding:8px 13px;cursor:pointer;" onclick="speakLocal('${d.local}')">
+      <div style="font-weight:700;color:var(--accent);font-size:.85rem;">${d.sign}</div>
+      <div style="font-size:.82rem;color:var(--teal);margin-top:2px;">${d.local}</div>
+      <div style="font-size:.68rem;color:var(--muted);">🔊 tap</div>
+    </div>`).join('');
+}
+
+function speakUpload(){
+  if(!uploadDetected.length){toast('No results');return;}
+  speakLocal(uploadDetected.map(d=>d.local).join(' '));
+}
+
+function clearUpload(){
+  uploadDetected=[];
+  document.getElementById('uploadResult').style.display='none';
+  document.getElementById('fileInput').value='';
+}
+
+// ═══════════════════════════════════════════════════════
+// TEXT → SIGN
+// ═══════════════════════════════════════════════════════
+function buildAvailWords(){
+  const cont=document.getElementById('availWords');
+  cont.innerHTML=Object.keys(SIGNS).map(k=>`
+    <span onclick="addWord('${k}')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:5px;font-size:.72rem;cursor:pointer;font-weight:600;">${k}</span>
+  `).join('');
+}
+
+function addWord(w){
+  const inp=document.getElementById('t2sInput');
+  inp.value=(inp.value?inp.value+' ':'')+w;
+}
+
+function convertText(){
+  const input=document.getElementById('t2sInput').value.trim().toUpperCase();
+  if(!input){toast('Enter text first');return;}
+  const words=input.split(/\s+/);
+  t2sResults=[];
+  const display=document.getElementById('hand-display');
+  display.innerHTML='';
+  words.forEach(word=>{
+    const data=SIGNS[word];
+    if(data){
+      t2sResults.push({word,data});
+      const card=document.createElement('div');card.className='hand-card';
+      const cv=document.createElement('canvas');cv.width=120;cv.height=130;cv.style.display='block';cv.style.margin='0 auto 8px';cv.style.width='100%';cv.style.height='auto';
+      card.appendChild(cv);
+      const lbl=document.createElement('div');lbl.style.cssText='font-weight:700;font-size:.8rem;color:var(--navy);';lbl.textContent=word;
+      const ta=document.createElement('div');ta.style.cssText='font-size:.75rem;color:var(--teal);margin-top:2px;';ta.textContent=getLocal(word);
+      card.appendChild(lbl);card.appendChild(ta);
+      card.onclick=()=>speakLocal(getLocal(word));
+      display.appendChild(card);
+      drawHand(cv,data.f);
+    } else {
+      const card=document.createElement('div');card.className='hand-card';
+      card.innerHTML=`<div style="font-size:1.6rem;margin-bottom:6px;">❓</div><div style="font-weight:700;font-size:.78rem;color:var(--muted);">${word}</div><div style="font-size:.68rem;color:var(--muted2);">Not found</div>`;
+      display.appendChild(card);
+    }
+  });
+  if(!t2sResults.length) display.innerHTML='<div style="color:var(--muted);padding:20px;font-size:.85rem;">No matching signs found.</div>';
+  else toast('Showing '+t2sResults.length+' hand signs!');
+}
+
+function drawHand(canvas, fingers) {
+  // ── Photorealistic hand renderer ──
+  // fingers = [thumb, index, middle, ring, pinky]  1=extended 0=folded
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Skin gradient colours
+  const skinBase  = '#e8b89a';
+  const skinMid   = '#d4976e';
+  const skinDark  = '#b57850';
+  const skinShad  = '#8a5a38';
+  const nailCol   = '#f0ddd0';
+  const nailBord  = '#c9a07a';
+  const knuckleC  = '#c28460';
+  const lineC     = '#9a6040';
+
+  // Helper: rounded rect path
+  function rr(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  // Helper: finger gradient fill
+  function fingerGrad(x,y,w,h,ext){
+    const g=ctx.createLinearGradient(x,y,x+w,y+h);
+    if(ext){g.addColorStop(0,'#f2c9a8');g.addColorStop(0.4,skinBase);g.addColorStop(1,skinMid);}
+    else{g.addColorStop(0,skinMid);g.addColorStop(0.5,'#c9885c');g.addColorStop(1,skinDark);}
+    return g;
+  }
+
+  // Helper: draw nail
+  function drawNail(cx2,ty,fw){
+    const nw=fw*0.68, nh=fw*0.45;
+    const nx=cx2-nw/2, ny=ty+fw*0.08;
+    rr(nx,ny,nw,nh,nw*0.4);
+    const ng=ctx.createLinearGradient(nx,ny,nx,ny+nh);
+    ng.addColorStop(0,'#f9ede5');ng.addColorStop(0.5,nailCol);ng.addColorStop(1,'#dfc0aa');
+    ctx.fillStyle=ng;ctx.fill();
+    ctx.strokeStyle=nailBord;ctx.lineWidth=0.6;ctx.stroke();
+    // shine
+    ctx.beginPath();ctx.moveTo(nx+nw*0.25,ny+nh*0.15);ctx.lineTo(nx+nw*0.75,ny+nh*0.15);
+    ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=0.8;ctx.stroke();
+  }
+
+  // Helper: draw knuckle lines
+  function drawKnuckle(cx2,ky,fw){
+    ctx.strokeStyle=knuckleC;ctx.lineWidth=0.7;
+    [-1,0,1].forEach(d=>{
+      ctx.beginPath();ctx.arc(cx2+d*fw*0.2,ky,fw*0.35,0.2,Math.PI-0.2);
+      ctx.stroke();
+    });
+  }
+
+  // ── PALM ─────────────────────────────────────────────────────────
+  const palmX=W*0.18, palmY=H*0.50, palmW=W*0.64, palmH=H*0.42;
+  const pg=ctx.createLinearGradient(palmX,palmY,palmX+palmW,palmY+palmH);
+  pg.addColorStop(0,'#f0c49a');pg.addColorStop(0.35,skinBase);pg.addColorStop(0.7,skinMid);pg.addColorStop(1,skinDark);
+  rr(palmX,palmY,palmW,palmH,palmW*0.15);
+  ctx.fillStyle=pg;ctx.fill();
+  ctx.strokeStyle=lineC;ctx.lineWidth=0.8;ctx.stroke();
+
+  // palm crease lines
+  ctx.strokeStyle='rgba(140,85,48,0.25)';ctx.lineWidth=0.7;
+  ctx.beginPath();ctx.moveTo(palmX+palmW*0.18,palmY+palmH*0.42);ctx.bezierCurveTo(palmX+palmW*0.5,palmY+palmH*0.28,palmX+palmW*0.8,palmY+palmH*0.38,palmX+palmW*0.92,palmY+palmH*0.2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(palmX+palmW*0.12,palmY+palmH*0.68);ctx.bezierCurveTo(palmX+palmW*0.5,palmY+palmH*0.58,palmX+palmW*0.85,palmY+palmH*0.65,palmX+palmW*0.95,palmY+palmH*0.55);ctx.stroke();
+
+  // knuckle bumps on top of palm
+  [0.30,0.44,0.57,0.70].forEach(rx=>{
+    const kx=palmX+palmW*rx, ky=palmY;
+    const kg=ctx.createRadialGradient(kx,ky,0,kx,ky,palmW*0.07);
+    kg.addColorStop(0,'#f0c49a');kg.addColorStop(1,'rgba(240,196,154,0)');
+    ctx.beginPath();ctx.arc(kx,ky,palmW*0.07,Math.PI,0);
+    ctx.fillStyle=kg;ctx.fill();
+  });
+
+  // ── FINGERS ──────────────────────────────────────────────────────
+  // [centerX%, baseY%, extTipY%, foldTipY%, width%, label]
+  const FDEFS = [
+    // Thumb — angled left
+    null,
+    // Index
+    {cx:0.32, by:0.50, ey:0.05, fy:0.38, fw:0.115},
+    // Middle
+    {cx:0.45, by:0.50, ey:0.02, fy:0.36, fw:0.115},
+    // Ring
+    {cx:0.58, by:0.51, ey:0.05, fy:0.38, fw:0.110},
+    // Pinky
+    {cx:0.70, by:0.53, ey:0.10, fy:0.42, fw:0.090},
+  ];
+
+  // Draw fingers 1-4 (not thumb)
+  for(let i=1;i<=4;i++){
+    const fd=FDEFS[i];
+    const ext=fingers[i]===1;
+    const cx2=W*fd.cx;
+    const by2=H*fd.by;
+    const tipY=ext? H*fd.ey : H*fd.fy;
+    const fw=W*fd.fw;
+    const fh=by2-tipY;
+
+    // Finger segments (3 phalanges)
+    const seg1Y=tipY;
+    const seg2Y=tipY+fh*0.33;
+    const seg3Y=tipY+fh*0.66;
+
+    // Full finger body
+    rr(cx2-fw/2, tipY, fw, fh, fw*0.45);
+    ctx.fillStyle=fingerGrad(cx2-fw/2,tipY,fw,fh,ext);
+    ctx.fill();
+    ctx.strokeStyle=lineC;ctx.lineWidth=0.7;ctx.stroke();
+
+    if(ext){
+      // Fingertip pad
+      const tg=ctx.createRadialGradient(cx2,tipY+fw*0.38,0,cx2,tipY+fw*0.38,fw*0.42);
+      tg.addColorStop(0,'rgba(255,220,190,0.5)');tg.addColorStop(1,'rgba(255,220,190,0)');
+      ctx.beginPath();ctx.ellipse(cx2,tipY+fw*0.38,fw*0.42,fw*0.42,0,0,Math.PI*2);
+      ctx.fillStyle=tg;ctx.fill();
+      // Nail
+      drawNail(cx2,tipY,fw);
+      // Joint lines
+      if(fh>20){
+        ctx.strokeStyle='rgba(140,85,48,0.3)';ctx.lineWidth=0.6;
+        [0.33,0.62].forEach(t=>{
+          ctx.beginPath();ctx.moveTo(cx2-fw*0.4,tipY+fh*t);ctx.lineTo(cx2+fw*0.4,tipY+fh*t);ctx.stroke();
+        });
+      }
+    } else {
+      // Folded: show knuckle only
+      drawKnuckle(cx2, by2-fh*0.12, fw);
+      // Side shadow for folded finger
+      const sg=ctx.createLinearGradient(cx2-fw/2,tipY,cx2+fw/2,tipY);
+      sg.addColorStop(0,'rgba(100,50,20,0.15)');sg.addColorStop(0.5,'rgba(100,50,20,0)');sg.addColorStop(1,'rgba(100,50,20,0.15)');
+      rr(cx2-fw/2,tipY,fw,fh,fw*0.45);
+      ctx.fillStyle=sg;ctx.fill();
+    }
+  }
+
+  // ── THUMB ────────────────────────────────────────────────────────
+  const tExt=fingers[0]===1;
+  const tBaseX=palmX+palmW*0.08, tBaseY=H*0.60;
+  const tW=W*0.115;
+  if(tExt){
+    // Extended thumb points upper-left
+    const tTipX=palmX-W*0.06, tTipY=H*0.30;
+    const tLen=Math.hypot(tTipX-tBaseX,tTipY-tBaseY);
+    const angle=Math.atan2(tTipY-tBaseY,tTipX-tBaseX);
+    ctx.save();
+    ctx.translate(tBaseX+tW/2,tBaseY);
+    ctx.rotate(angle+Math.PI/2);
+    rr(-tW/2,-tLen,tW,tLen,tW*0.45);
+    const tg2=ctx.createLinearGradient(-tW/2,0,tW/2,0);
+    tg2.addColorStop(0,'#f2c9a8');tg2.addColorStop(0.4,skinBase);tg2.addColorStop(1,skinMid);
+    ctx.fillStyle=tg2;ctx.fill();
+    ctx.strokeStyle=lineC;ctx.lineWidth=0.7;ctx.stroke();
+    // nail
+    ctx.fillStyle=nailCol;
+    rr(-tW*0.35,-tLen+tW*0.08,tW*0.7,tW*0.5,tW*0.25);
+    ctx.fill();ctx.strokeStyle=nailBord;ctx.lineWidth=0.5;ctx.stroke();
+    ctx.restore();
+  } else {
+    // Folded thumb tucked to side
+    const ttX=palmX+palmW*0.02, ttY=H*0.52, twH=H*0.16;
+    rr(ttX,ttY,tW*0.9,twH,tW*0.4);
+    const tg3=ctx.createLinearGradient(ttX,ttY,ttX,ttY+twH);
+    tg3.addColorStop(0,skinMid);tg3.addColorStop(1,skinDark);
+    ctx.fillStyle=tg3;ctx.fill();
+    ctx.strokeStyle=lineC;ctx.lineWidth=0.7;ctx.stroke();
+    // knuckle
+    drawKnuckle(ttX+tW*0.45,ttY+twH*0.25,tW*0.9);
+  }
+
+  // ── WRIST ────────────────────────────────────────────────────────
+  const wg=ctx.createLinearGradient(palmX+palmW*0.1,palmY+palmH,palmX+palmW*0.9,palmY+palmH+H*0.08);
+  wg.addColorStop(0,skinMid);wg.addColorStop(1,skinDark);
+  rr(palmX+palmW*0.08,palmY+palmH-2,palmW*0.84,H*0.10,4);
+  ctx.fillStyle=wg;ctx.fill();
+  ctx.strokeStyle=lineC;ctx.lineWidth=0.7;ctx.stroke();
+  // wrist crease
+  ctx.strokeStyle='rgba(140,85,48,0.22)';ctx.lineWidth=0.8;
+  ctx.beginPath();ctx.moveTo(palmX+palmW*0.1,palmY+palmH+H*0.03);
+  ctx.bezierCurveTo(palmX+palmW*0.35,palmY+palmH+H*0.015,palmX+palmW*0.65,palmY+palmH+H*0.045,palmX+palmW*0.9,palmY+palmH+H*0.025);
+  ctx.stroke();
+
+  // ── OVERALL SHADOW ───────────────────────────────────────────────
+  const shg=ctx.createRadialGradient(W*0.5,H*0.88,0,W*0.5,H*0.88,W*0.38);
+  shg.addColorStop(0,'rgba(0,0,0,0.18)');shg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.ellipse(W*0.5,H*0.92,W*0.36,H*0.07,0,0,Math.PI*2);
+  ctx.fillStyle=shg;ctx.fill();
+}
+
+function speakT2S(){
+  if(!t2sResults.length){convertText();setTimeout(()=>{const w=t2sResults.map(r=>getLocal(r.word)).join(' ');if(w)speakLocal(w);},500);return;}
+  speakLocal(t2sResults.map(r=>getLocal(r.word)).join(' '));
+}
+
+function clearT2S(){document.getElementById('t2sInput').value='';document.getElementById('hand-display').innerHTML='Type text and click Show Signs →';t2sResults=[];}
+
+// ═══════════════════════════════════════════════════════
+// AI CHAT ASSISTANT
+// ═══════════════════════════════════════════════════════
+const SIGN_KNOWLEDGE = `You are an expert ISL (Indian Sign Language) assistant. You know all about Indian Sign Language, Tamil sign language, finger spelling, and deaf communication. 
+Available signs in this app: ${Object.keys(SIGNS).join(', ')}.
+For each sign you know the Tamil (ta), Telugu (te), and Hindi (hi) translations.
+When users ask about signs, explain clearly. When they ask how to sign something, describe the finger pattern (T=thumb, I=index, M=middle, R=ring, P=pinky; 1=raised, 0=folded).
+Be encouraging and helpful. Keep responses concise but helpful.
+The app has: Live Detection, Image/Video Upload, Text-to-Sign display, Sign Library (75 signs), and AI Assistant tabs.`;
+
+function initChat(){
+  const box=document.getElementById('chatBox');
+  box.innerHTML='';
+  addChatMsg('assistant',"Vanakkam! 🤟 I'm your ISL Assistant. Ask me about sign language, finger patterns, or how to use this app!");
+}
+
+function addChatMsg(role,text){
+  const box=document.getElementById('chatBox');
+  const div=document.createElement('div');
+  div.className='chat-msg '+role;
+  div.textContent=text;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+}
+
+function addTyping(){
+  const box=document.getElementById('chatBox');
+  const div=document.createElement('div');
+  div.className='typing';div.id='typing';
+  div.innerHTML='<span></span><span></span><span></span>';
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+  return div;
+}
+
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg)return;
+  input.value='';
+  addChatMsg('user',msg);
+  chatHistory.push({role:'user',content:msg});
+  const typing=addTyping();
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:400,
+        system:SIGN_KNOWLEDGE,
+        messages:chatHistory.slice(-10).map(m=>({role:m.role,content:m.content}))
+      })
+    });
+    const data=await resp.json();
+    typing.remove();
+    const reply=data.content&&data.content[0]?data.content[0].text:'I can help with sign language questions! What would you like to know?';
+    chatHistory.push({role:'assistant',content:reply});
+    addChatMsg('assistant',reply);
+  }catch(e){
+    typing.remove();
+    // Fallback offline AI
+    const reply=offlineAI(msg);
+    chatHistory.push({role:'assistant',content:reply});
+    addChatMsg('assistant',reply);
+  }
+}
+
+function offlineAI(msg){
+  const m=msg.toLowerCase();
+  if(m.includes('hello')||m.includes('vanakkam')){
+    return "HELLO sign: All 5 fingers raised (open palm). Tamil: வணக்கம் (Vanakkam). Hold your open hand up near your face and move it slightly forward!";}
+  if(m.includes('how many')||m.includes('total sign')){
+    return "This app has 75 signs! Categories: Numbers (0-10), Greetings, Basic words, Food, Medical terms, People (family), Actions, Emotions, and Questions.";}
+  if(m.includes('tamil')){
+    return "This app speaks Tamil clearly! Click the 🔊 Speak button or select தமிழ் at the top right. The app uses your device's Tamil voice (ta-IN) for pronunciation.";}
+  if(m.includes('two hand')||m.includes('both hand')){
+    return "Great question! The app now detects BOTH hands simultaneously! Blue skeleton = Left hand, Teal skeleton = Right hand. Both signs show in the Left/Right indicators below the camera.";}
+  if(m.includes('accura')||m.includes('detect')){
+    return "Tips for better detection:\n1. Good lighting (face a window)\n2. Hold hand 30-50cm from camera\n3. Keep hand steady for 2 seconds\n4. Plain background works best\n5. One clear hand position at a time";}
+  if(m.includes('export')||m.includes('pdf')){
+    return "Click the 📄 Export PDF button to save your session! It will include all detected signs, timestamps, and Tamil/Telugu/Hindi translations. Great for your viva demo!";}
+  const signs=Object.keys(SIGNS).filter(s=>m.includes(s.toLowerCase()));
+  if(signs.length>0){
+    const s=signs[0];const d=SIGNS[s];
+    const pat=d.f.map((v,i)=>['T','I','M','R','P'][i]+(v?'↑':'↓')).join(' ');
+    return `${s}:\n🤟 Pattern: ${pat}\n🇮🇳 Tamil: ${d.ta}\n📍 Telugu: ${d.te}\n🔵 Hindi: ${d.hi}`;}
+  return "I can help with:\n• How to make specific signs\n• Tamil/Telugu/Hindi translations\n• App features\n• Detection tips\n\nTry asking: 'How do I sign WATER?' or 'What is HELP in Tamil?'";
+}
+
+function quickChat(msg){document.getElementById('chatInput').value=msg;sendChat();}
+function clearChat(){initChat();chatHistory=[];}
+
+// ═══════════════════════════════════════════════════════
+// SESSION SUMMARY
+// ═══════════════════════════════════════════════════════
+function updateSessionSummary(){
+  const el=document.getElementById('session-summary');
+  if(!sessionSigns.length){el.innerHTML='<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px;">Start detecting signs to see your session summary.</div>';return;}
+  const counts={};
+  sessionSigns.forEach(s=>{counts[s.sign]=(counts[s.sign]||0)+1;});
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML=`<div style="font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Session: ${sessionSigns.length} detections</div>`+
+    sorted.map(([s,c])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div><div style="font-weight:700;font-size:.85rem;color:var(--accent);">${s}</div><div style="font-size:.75rem;color:var(--teal);">${getLocal(s)}</div></div>
+      <div style="background:var(--accent-light);color:var(--accent);border-radius:5px;padding:2px 9px;font-size:.75rem;font-weight:700;">${c}×</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════════════════════
+function exportPDF(){
+  const content=`ISL Sign Recognition App — Session Report
+Generated: ${new Date().toLocaleString()}
+Language: ${LANG_NAMES[curLang]||curLang}
+Total Detections: ${detectedCount}
+
+DETECTED SENTENCE:
+${sentence.join(' → ')||'(none)'}
+
+SESSION HISTORY:
+${sessionSigns.map(s=>`[${s.time}] ${s.sign} — ${getLocal(s.sign)}`).join('\n')||'(none)'}
+
+SIGN COUNT SUMMARY:
+${(()=>{const c={};sessionSigns.forEach(s=>{c[s.sign]=(c[s.sign]||0)+1;});return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`  ${s}: ${n} time(s) — ${getLocal(s)}`).join('\n')})()|| '  (none)'}
+
+---
+ISL Sign Recognition App v3.0 | Final Year Project
+`;
+  downloadText(content,'ISL_Session_Report.txt');
+  toast('📄 Session report downloaded!');
+}
+
+function exportUploadPDF(){
+  const content=`ISL Upload Detection Report
+Generated: ${new Date().toLocaleString()}
+
+DETECTED SIGNS:
+${uploadDetected.map(d=>`  ${d.sign} — ${d.local}`).join('\n')||'(none)'}
+---
+ISL Sign Recognition App v3.0`;
+  downloadText(content,'ISL_Upload_Report.txt');
+  toast('📄 Upload report downloaded!');
+}
+
+function exportT2SPDF(){
+  const content=`ISL Text to Sign Report
+Generated: ${new Date().toLocaleString()}
+
+INPUT: ${document.getElementById('t2sInput').value}
+
+SIGNS:
+${t2sResults.map(r=>`  ${r.word} — ${getLocal(r.word)}`).join('\n')||'(none)'}
+---
+ISL Sign Recognition App v3.0`;
+  downloadText(content,'ISL_TextToSign_Report.txt');
+  toast('📄 Text report downloaded!');
+}
+
+function downloadText(text,filename){
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
+  a.download=filename;a.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// SIGN LIBRARY
+// ═══════════════════════════════════════════════════════
+const CATEGORIES=['All','Numbers','Greetings','Basic','Food','Medical','People','Actions','Emotions','Questions'];
+let activeCategory='All';
+
+function buildLibrary(search=''){
+  const grid=document.getElementById('lib-grid');
+  // Build category buttons
+  const cats=document.getElementById('libCats');
+  if(!cats.children.length||cats.dataset.built!=='1'){
+    cats.innerHTML=CATEGORIES.map(c=>`<div class="lib-cat${c===activeCategory?' active':''}" onclick="filterCat('${c}',this)">${c}</div>`).join('');
+    cats.dataset.built='1';
+  }
+  grid.innerHTML='';
+  const query=search.toLowerCase();
+  for(const [name,data] of Object.entries(SIGNS)){
+    if(activeCategory!=='All'&&data.cat!==activeCategory)continue;
+    if(query&&!name.toLowerCase().includes(query)&&!data.ta.includes(query)&&!(data[curLang]||'').includes(query))continue;
+    const card=document.createElement('div');card.className='lib-card';
+    const pat=data.f.map((v,i)=>['T','I','M','R','P'][i]+(v?'↑':'↓')).join(' ');
+    const localText=data[curLang]||data.ta;
+    const fontFam=curLang==='ta'?'Noto Sans Tamil':LANG_FONTS[curLang]||'inherit';
+    card.innerHTML=`<div class="lib-en">${name}</div><div class="lib-local" style="font-family:${fontFam};color:var(--teal);">${localText}</div><div class="lib-pat">${pat}</div>`;
+    card.onclick=()=>{speakLocal(localText);toast('🔊 '+name+' — '+localText);};
+    grid.appendChild(card);
+  }
+}
+
+function filterCat(cat,el){
+  activeCategory=cat;
+  document.querySelectorAll('.lib-cat').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  buildLibrary(document.getElementById('libSearch').value);
+}
+
+function filterLib(){buildLibrary(document.getElementById('libSearch').value);}
+
+// ═══════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════
+function clearAll(){
+  curSign='';lastSign='';stableCnt=0;
+  document.getElementById('sign-en').textContent='—';
+  document.getElementById('sign-local').textContent=curLang==='ta'?'காத்திருக்கிறேன்':curLang==='te'?'వేచి ఉంది':'प्रतीक्षा करें';
+  document.getElementById('sign-tr').textContent='Show your hand to detect';
+  document.getElementById('conf-fill').style.width='0%';
+  document.getElementById('conf-label').textContent='0% confidence';
+  setFingers([0,0,0,0,0]);
+  resetHandIndicators();
+}
+
+function clearSentence(){sentence=[];document.getElementById('sentence-text').textContent='—';document.getElementById('sv-words').textContent='0';}
+
+function setStatus(text,cls){
+  document.getElementById('hdr-status').className='hdr-status '+cls;
+  document.getElementById('status-txt').textContent=text;
+}
+
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ═══════════════════════════════════════════════════════
+// PYTHON BACKEND
+// ═══════════════════════════════════════════════════════
+(function(){
+  var ws=null,ok=false,tmr=null,cv=null,cx=null;
+  function badge(on){
+    var el=document.getElementById('py-badge');
+    el.textContent=on?'🟢 Python Connected':'🟡 Browser Mode';
+    el.style.cssText='position:fixed;bottom:20px;left:20px;padding:5px 12px;border-radius:7px;font-size:.7rem;font-weight:600;z-index:9997;pointer-events:none;font-family:DM Mono,monospace;background:'+(on?'#ede9fe':'#f5f3ff')+';color:'+(on?'#6d28d9':'#8b5cf6')+';border:1px solid '+(on?'#c4b5fd':'#ddd6fe')+';';
+  }
+  function connect(){
+    try{
+      ws=new WebSocket('ws://localhost:8000/ws');
+      ws.onopen=function(){ok=true;badge(true);startF();};
+      ws.onmessage=function(e){
+        try{var d=JSON.parse(e.data);if(d&&d.confirmed&&d.confirmed_sign){popup(d.confirmed_sign,d.confirmed_tamil||'');}}catch(x){}
+      };
+      ws.onclose=function(){ok=false;badge(false);stopF();setTimeout(connect,3000);};
+      ws.onerror=function(){ok=false;badge(false);};
+    }catch(x){badge(false);}
+  }
+  function startF(){
+    if(!cv){cv=document.createElement('canvas');cv.width=320;cv.height=240;cx=cv.getContext('2d');}
+    if(tmr)clearInterval(tmr);
+    tmr=setInterval(function(){
+      if(!ok||!ws||ws.readyState!==1)return;
+      var v=document.getElementById('vid');
+      if(!v||!v.srcObject||v.videoWidth===0)return;
+      try{cx.drawImage(v,0,0,320,240);ws.send(JSON.stringify({type:'frame',frame:cv.toDataURL('image/jpeg',.6)}));}catch(x){}
+    },150);
+  }
+  function stopF(){if(tmr){clearInterval(tmr);tmr=null;}}
+  var ls='',cl=false;
+  function popup(en,ta){
+    document.getElementById('pp-en').textContent=en;
+    document.getElementById('pp-ta').textContent=ta||getLocal(en);
+    document.getElementById('pp-ta').style.fontFamily=curLang==='ta'?'Noto Sans Tamil':'DM Sans';
+    var p=document.getElementById('py-popup');
+    p.classList.add('show');clearTimeout(p._t);p._t=setTimeout(function(){p.classList.remove('show');},2500);
+    if(!cl&&en!==ls){ls=en;cl=true;setTimeout(function(){cl=false;},2000);speakLocal(getLocal(en)||en);}
+  }
+  badge(false);setTimeout(connect,1500);
+})();
+</script>
+</body>
+</html>

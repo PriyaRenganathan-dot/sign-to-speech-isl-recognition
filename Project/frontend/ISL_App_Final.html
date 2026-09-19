@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sign Language Recognition App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f5f3ff;--surface:#fff;--card:#fff;
+  --border:#ddd6fe;--border2:#c4b5fd;
+  --accent:#7c3aed;--accent2:#6d28d9;
+  --accent-light:#ede9fe;--accent-soft:#ddd6fe;
+  --green:#059669;--green-light:#ecfdf5;
+  --red:#dc2626;--red-light:#fef2f2;
+  --muted:#6d28d9;--muted2:#8b5cf6;
+  --text:#2e1065;--text2:#4c1d95;
+  --sh1:0 1px 4px rgba(109,40,217,.12);
+  --sh2:0 4px 18px rgba(109,40,217,.14);
+  --r:12px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── WELCOME ── */
+#welcome{position:fixed;inset:0;z-index:2000;background:linear-gradient(135deg,#f5f3ff,#ede9fe 50%,#e9d5ff);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.floaty{position:absolute;animation:floatUp linear infinite;pointer-events:none;opacity:0;user-select:none;}
+@keyframes floatUp{0%{transform:translateY(100vh) rotate(0deg);opacity:0;}10%{opacity:.7;}90%{opacity:.4;}100%{transform:translateY(-150px) rotate(360deg);opacity:0;}}
+.wc{position:relative;z-index:1;text-align:center;padding:2rem;max-width:560px;animation:fadeIn .8s ease-out;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+
+/* Sign of the Day on welcome */
+.sotd-card{background:rgba(255,255,255,.7);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;backdrop-filter:blur(4px);}
+.sotd-canvas{border-radius:10px;background:#080c19;flex-shrink:0;}
+.sotd-info{text-align:left;}
+.sotd-badge{font-size:.68rem;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.sotd-name{font-size:1.2rem;font-weight:700;color:#3b0764;}
+.sotd-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.95rem;color:#7c3aed;}
+
+.wc-logo{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:9px 20px;border-radius:14px;margin-bottom:16px;box-shadow:0 8px 28px rgba(124,58,237,.32);}
+.wc-logo-icon{font-size:1.8rem;}
+.wc-logo-text{font-size:1.2rem;font-weight:700;color:#fff;letter-spacing:.5px;}
+.wc-h1{font-size:clamp(1.4rem,3.5vw,2.2rem);font-weight:700;color:#3b0764;line-height:1.2;margin-bottom:7px;}
+.wc-h1 span{color:#7c3aed;}
+.wc-sub{color:#6d28d9;font-size:.87rem;margin-bottom:4px;}
+.wc-ta{font-family:'Noto Sans Tamil',sans-serif;color:#7c3aed;font-size:.87rem;margin-bottom:18px;}
+.wc-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:22px;}
+.chip{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:#6d28d9;padding:4px 11px;border-radius:20px;font-size:.72rem;font-weight:500;}
+.wc-btn{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;padding:12px 52px;border-radius:50px;border:none;cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(124,58,237,.4);}
+.wc-btn:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 8px 32px rgba(124,58,237,.5);}
+
+/* ── APP ── */
+#app{display:none;min-height:100vh;}
+.hdr{background:linear-gradient(135deg,#4c1d95,#5b21b6);height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(76,29,149,.35);}
+.hdr-logo{font-size:.87rem;font-weight:700;color:#f5f3ff;display:flex;align-items:center;gap:8px;}
+.logo-ico{width:26px;height:26px;background:rgba(255,255,255,.2);border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.hdr-r{display:flex;align-items:center;gap:7px;}
+.lang-sel{display:flex;gap:3px;}
+.lb{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#ede9fe;font-size:.69rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.lb.on{background:rgba(255,255,255,.9);color:#6d28d9;font-weight:600;}
+.spill{display:flex;align-items:center;gap:5px;font-size:.69rem;padding:3px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#ede9fe;}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.dg{color:#4ade80;}.dy{color:#fde68a;}
+
+/* Subtitle banner */
+#subtitle-banner{position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(8,12,25,.92);padding:10px 20px;display:none;align-items:center;gap:14px;border-top:1px solid rgba(124,58,237,.3);}
+#subtitle-text{font-size:1.1rem;font-weight:600;color:#fff;white-space:nowrap;animation:scrollBanner 12s linear infinite;}
+#subtitle-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.95rem;color:#ffdc3c;white-space:nowrap;}
+@keyframes scrollBanner{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+.banner-label{font-size:.68rem;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;}
+
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 18px;display:flex;gap:1px;overflow-x:auto;}
+.nav::-webkit-scrollbar{height:3px;}
+.nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.ntab{padding:10px 14px;font-size:.77rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.ntab:hover{color:var(--text);}
+.ntab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+
+.content{padding:16px;max-width:1200px;margin:0 auto;padding-bottom:60px;}
+.panel{display:none;}.panel.on{display:block;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:820px){.g2{grid-template-columns:1fr;}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh1);}
+.card-hd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:.82rem;font-weight:600;color:var(--text);}
+.card-body{padding:14px;}
+
+/* CAMERA — dark like pretrained */
+.cam-wrap{position:relative;background:#080c19;border-radius:10px;overflow:hidden;aspect-ratio:4/3;border:2px solid rgba(124,58,237,.25);}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+#overlay{position:absolute;inset:0;width:100%;height:100%;}
+.cam-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#080c19;z-index:2;}
+.cam-idle-ico{font-size:2.5rem;animation:pulse2 2s ease-in-out infinite;}
+@keyframes pulse2{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.cam-idle-txt{color:#3a4070;font-size:.82rem;font-weight:500;}
+
+/* Toggle skeleton button */
+.skel-toggle{position:absolute;top:8px;right:8px;z-index:10;background:rgba(8,12,25,.8);border:1px solid rgba(124,58,237,.4);color:#a78bfa;font-size:.65rem;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:5px;cursor:pointer;transition:all .2s;}
+.skel-toggle:hover{background:rgba(124,58,237,.3);color:#fff;}
+
+/* Streak + Accuracy badges */
+.live-badges{display:flex;gap:8px;margin:8px 0;}
+.badge-card{flex:1;background:#080c19;border:1px solid rgba(124,58,237,.3);border-radius:9px;padding:8px 12px;text-align:center;}
+.badge-val{font-size:1.5rem;font-weight:700;font-family:'DM Mono',monospace;}
+.badge-lbl{font-size:.67rem;color:#4a5580;margin-top:1px;}
+
+.res-main{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid var(--border2);border-radius:10px;padding:14px;text-align:center;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+#sign-en{font-size:2.4rem;font-weight:700;color:#6d28d9;letter-spacing:2px;line-height:1;}
+#sign-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:1.35rem;font-weight:600;color:#7c3aed;margin-top:2px;}
+#sign-tr{font-size:.73rem;color:var(--muted2);font-style:italic;}
+.cbar{width:100%;height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px;}
+.cfill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px;transition:width .3s;width:0%;}
+.clbl{font-size:.66rem;color:var(--muted2);text-align:right;margin-top:2px;}
+
+/* Accuracy ring */
+.acc-ring{position:relative;width:64px;height:64px;flex-shrink:0;}
+.acc-ring svg{transform:rotate(-90deg);}
+.acc-ring .track{fill:none;stroke:var(--border);stroke-width:5;}
+.acc-ring .fill{fill:none;stroke:#46dc6e;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .5s,stroke .3s;}
+.acc-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
+
+.hboxes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;}
+.hbox{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px;text-align:center;transition:all .25s;}
+.hbox.al{background:#f5f3ff;border-color:#7c3aed;}
+.hbox.ar{background:#ecfdf5;border-color:#059669;}
+.hbox-lbl{font-size:.65rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+.hbox-sign{font-size:.87rem;font-weight:700;color:var(--text);}
+.hbox-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.75rem;color:var(--muted);margin-top:1px;}
+
+.fingers{display:flex;gap:5px;justify-content:center;margin:8px 0;}
+.fdot{width:30px;height:30px;border-radius:50%;background:var(--border);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--muted2);transition:all .25s;}
+.fdot.on{background:#ede9fe;border-color:#7c3aed;color:#6d28d9;}
+.fdot.half{background:#f3e8ff;border-color:#a78bfa;color:#8b5cf6;}
+
+.sbox{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px;}
+.sbox-lbl{font-size:.66rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+#sentence-text{font-size:.85rem;color:var(--text2);min-height:20px;word-break:break-word;line-height:1.5;}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+@media(max-width:580px){.stats{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px;box-shadow:var(--sh1);}
+.stat-val{font-size:1.5rem;font-weight:700;color:var(--accent);line-height:1;}
+.stat-lbl{font-size:.67rem;color:var(--muted2);margin-top:2px;}
+.stat-ico{font-size:1rem;margin-bottom:3px;}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;transition:all .18s;}
+.bp{background:var(--accent);color:#fff;}.bp:hover{background:var(--accent2);}
+.bp:disabled{opacity:.35;cursor:not-allowed;}
+.bo{background:transparent;color:var(--accent);border:1.5px solid var(--accent);}.bo:hover{background:var(--accent-light);}
+.bg{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);}.bg:hover{border-color:var(--border2);}
+.brow{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+
+.t2s-in{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);background:var(--surface);resize:none;outline:none;transition:border .2s;}
+.t2s-in:focus{border-color:var(--accent);}
+.hand-display{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:10px;margin-top:13px;}
+.hand-card{background:#080c19;border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:all .2s;}
+.hand-card:hover{transform:translateY(-2px);border-color:var(--accent);}
+
+.lib-search{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--text);background:var(--surface);outline:none;margin-bottom:11px;}
+.lib-search:focus{border-color:var(--accent);}
+.lib-cats{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;}
+.lcat{padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);transition:all .2s;}
+.lcat.on,.lcat:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px;}
+.lib-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:var(--sh1);}
+.lib-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.lib-card canvas{width:100%;display:block;background:#080c19;}
+.lib-body{padding:8px;}
+.lib-en{font-weight:700;color:var(--accent);font-size:.86rem;}
+.lib-ta{font-family:'Noto Sans Tamil',sans-serif;color:#6d28d9;font-size:.81rem;margin-top:2px;}
+.lib-pat{font-size:.63rem;color:var(--muted2);margin-top:3px;font-family:'DM Mono',monospace;}
+
+.chat-box{height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);display:flex;flex-direction:column;gap:8px;}
+.cmsg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:.8rem;line-height:1.5;}
+.cmsg.user{background:#7c3aed;color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.cmsg.ai{background:#fff;border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-left-radius:3px;}
+.chat-in-row{display:flex;gap:6px;margin-top:8px;}
+.chat-in{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--text);outline:none;}
+.chat-in:focus{border-color:var(--accent);}
+.tdots{display:flex;gap:4px;padding:9px 12px;align-self:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;border-bottom-left-radius:3px;}
+.tdots span{width:5px;height:5px;border-radius:50%;background:#c4b5fd;animation:bounce .8s infinite;}
+.tdots span:nth-child(2){animation-delay:.15s;}.tdots span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+.quiz-opt{padding:9px 8px;border-radius:9px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.79rem;font-weight:600;color:var(--text);transition:all .2s;text-align:left;width:100%;}
+.quiz-opt:hover{border-color:var(--accent);}
+.quiz-opt.correct{background:#ecfdf5;border-color:#059669;}
+.quiz-opt.wrong{background:#fef2f2;border-color:#dc2626;}
+
+#py-popup{position:fixed;bottom:55px;right:16px;background:#fff;border:1px solid var(--border);border-radius:13px;padding:12px 16px;z-index:9997;min-width:185px;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);box-shadow:var(--sh2);pointer-events:none;}
+#py-popup.show{opacity:1;transform:translateY(0);}
+.pp-en{font-size:1.1rem;font-weight:700;color:#6d28d9;}
+.pp-ta{font-family:'Noto Sans Tamil',sans-serif;font-size:.88rem;color:#7c3aed;margin-top:2px;}
+.pp-info{font-size:.63rem;color:#8b5cf6;margin-top:2px;}
+#py-badge{position:fixed;bottom:55px;left:16px;padding:4px 10px;border-radius:7px;font-size:.66rem;font-weight:600;z-index:9996;pointer-events:none;font-family:'DM Mono',monospace;}
+#toast{position:fixed;top:62px;left:50%;transform:translateX(-50%) translateY(-6px);background:#4c1d95;color:#f5f3ff;padding:7px 15px;border-radius:9px;font-size:.76rem;z-index:9995;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;box-shadow:var(--sh2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- WELCOME with Sign of the Day -->
+<div id="welcome">
+  <div class="floaty" style="left:4%;font-size:2.2rem;animation-duration:8s;animation-delay:0s;">🤟</div>
+  <div class="floaty" style="left:13%;font-size:1.7rem;animation-duration:11s;animation-delay:2s;">✋</div>
+  <div class="floaty" style="left:22%;font-size:2.4rem;animation-duration:9s;animation-delay:4s;">🤚</div>
+  <div class="floaty" style="left:34%;font-size:1.9rem;animation-duration:12s;animation-delay:1s;">👐</div>
+  <div class="floaty" style="left:46%;font-size:2rem;animation-duration:7s;animation-delay:3s;">🖐️</div>
+  <div class="floaty" style="left:57%;font-size:1.6rem;animation-duration:13s;animation-delay:0.5s;">🤙</div>
+  <div class="floaty" style="left:67%;font-size:2.1rem;animation-duration:10s;animation-delay:2.5s;">👋</div>
+  <div class="floaty" style="left:77%;font-size:1.8rem;animation-duration:8.5s;animation-delay:1.5s;">🤟</div>
+  <div class="floaty" style="left:87%;font-size:1.7rem;animation-duration:11.5s;animation-delay:3.5s;">✌️</div>
+  <div class="floaty" style="left:93%;font-size:2rem;animation-duration:9.5s;animation-delay:0.8s;">🖖</div>
+  <div class="wc">
+    <div class="wc-logo"><span class="wc-logo-icon">🤟</span><span class="wc-logo-text">Sign Language Recognition App</span></div>
+    <!-- SIGN OF THE DAY -->
+    <div class="sotd-card" id="sotd-card">
+      <canvas class="sotd-canvas" id="sotd-cv" width="70" height="70"></canvas>
+      <div class="sotd-info">
+        <div class="sotd-badge">✨ Sign of the Day</div>
+        <div class="sotd-name" id="sotd-name">HELLO</div>
+        <div class="sotd-ta" id="sotd-ta">வணக்கம்</div>
+      </div>
+    </div>
+    <h1 class="wc-h1">Recognize Signs,<br><span>Bridge Communication</span></h1>
+    <p class="wc-sub">Indian Sign Language Recognition System</p>
+    <p class="wc-ta">கையசைவு அங்கீகார அமைப்பு</p>
+    <div class="wc-chips">
+      <span class="chip">✋ Both hands</span>
+      <span class="chip">🎯 47 unique signs</span>
+      <span class="chip">🔊 Tamil + English</span>
+      <span class="chip">🔥 Streak counter</span>
+      <span class="chip">📺 Live subtitles</span>
+      <span class="chip">🎯 Accuracy score</span>
+    </div>
+    <button class="wc-btn" id="enterBtn">Enter</button>
+  </div>
+</div>
+
+<!-- SUBTITLE BANNER -->
+<div id="subtitle-banner">
+  <span class="banner-label">📺 Live</span>
+  <div style="overflow:hidden;flex:1;">
+    <span id="subtitle-text">—</span>
+  </div>
+  <span id="subtitle-ta" style="margin-left:14px;"></span>
+</div>
+
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-logo"><div class="logo-ico">🤟</div>Sign Language Recognition App</div>
+    <div class="hdr-r">
+      <div class="lang-sel">
+        <button class="lb on" onclick="setLang('en',this)">English</button>
+        <button class="lb" onclick="setLang('ta',this)">தமிழ்</button>
+      </div>
+      <div class="spill"><div class="dot dy" id="sdot"></div><span id="stxt">Loading...</span></div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="ntab on" onclick="sw('live',this)">📷 Live</div>
+    <div class="ntab" onclick="sw('t2s',this)">✍️ Text→Sign</div>
+    <div class="ntab" onclick="sw('ai',this)">🤖 AI Chat</div>
+    <div class="ntab" onclick="sw('library',this)">📚 Library</div>
+    <div class="ntab" onclick="sw('quiz',this)">🧩 Quiz</div>
+  </div>
+
+  <!-- ══ LIVE ══ -->
+  <div class="panel on" id="panel-live">
+    <div class="content">
+      <div class="stats">
+        <div class="stat"><div class="stat-ico">🎯</div><div class="stat-val">47</div><div class="stat-lbl">Signs</div></div>
+        <div class="stat"><div class="stat-ico">✅</div><div class="stat-val" id="sv-d">0</div><div class="stat-lbl">Detected</div></div>
+        <div class="stat"><div class="stat-ico">🔥</div><div class="stat-val" id="sv-streak">0</div><div class="stat-lbl">Best streak</div></div>
+        <div class="stat"><div class="stat-ico">📊</div><div class="stat-val" id="sv-a">—</div><div class="stat-lbl">Confidence</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">📷 Live Camera</div>
+            <div class="spill" style="font-size:.67rem;padding:3px 8px;"><div class="dot dy" id="cdot"></div><span id="ctxt">Stopped</span></div>
+          </div>
+          <div class="card-body">
+            <div class="cam-wrap">
+              <div class="cam-idle" id="cam-idle">
+                <div class="cam-idle-ico">🤟</div>
+                <div class="cam-idle-txt">Click Start Camera</div>
+              </div>
+              <video id="vid" autoplay playsinline muted></video>
+              <canvas id="overlay"></canvas>
+              <!-- Skeleton toggle -->
+              <button class="skel-toggle" id="skelBtn" onclick="toggleSkeleton()" title="Toggle skeleton style">🎨 Multi</button>
+            </div>
+            <div class="brow">
+              <button class="btn bp" id="camBtn" onclick="startCam()" disabled>▶ Start Camera</button>
+              <button class="btn bg" id="stopBtn" onclick="stopCam()" style="display:none">⏹ Stop</button>
+              <button class="btn bg" onclick="clearResult()">🗑 Clear</button>
+              <button class="btn bg" id="bannerBtn" onclick="toggleBanner()">📺 Subtitles</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">🧠 Detection Result</div>
+            <button class="btn bp" style="font-size:.71rem;padding:4px 10px;" onclick="speakCurrent()">🔊 Speak</button>
+          </div>
+          <div class="card-body">
+            <!-- Accuracy ring + result -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div class="acc-ring">
+                <svg width="64" height="64" viewBox="0 0 64 64">
+                  <circle class="track" cx="32" cy="32" r="27"/>
+                  <circle class="fill" id="acc-circle" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+                </svg>
+                <div class="acc-pct" id="acc-pct">0%</div>
+              </div>
+              <div style="flex:1;">
+                <div id="sign-en" style="font-size:2.2rem;font-weight:700;color:#6d28d9;letter-spacing:2px;line-height:1;">—</div>
+                <div id="sign-ta" style="font-family:'Noto Sans Tamil',sans-serif;font-size:1.2rem;font-weight:600;color:#7c3aed;margin-top:2px;">Show your hand</div>
+                <div id="sign-tr" style="font-size:.72rem;color:var(--muted2);font-style:italic;"></div>
+              </div>
+            </div>
+            <!-- Streak badges -->
+            <div class="live-badges">
+              <div class="badge-card">
+                <div class="badge-val" id="cur-streak" style="color:#f59e0b;">0</div>
+                <div class="badge-lbl">🔥 Current Streak</div>
+              </div>
+              <div class="badge-card">
+                <div class="badge-val" id="best-streak" style="color:#46dc6e;">0</div>
+                <div class="badge-lbl">🏆 Best Streak</div>
+              </div>
+              <div class="badge-card">
+                <div class="badge-val" id="avg-acc" style="color:#46c3fb;">—</div>
+                <div class="badge-lbl">📊 Avg Accuracy</div>
+              </div>
+            </div>
+            <div class="hboxes">
+              <div class="hbox" id="lbox"><div class="hbox-lbl">✋ Left</div><div class="hbox-sign" id="lsign">—</div><div class="hbox-ta" id="lta"></div></div>
+              <div class="hbox" id="rbox"><div class="hbox-lbl">🤚 Right</div><div class="hbox-sign" id="rsign">—</div><div class="hbox-ta" id="rta"></div></div>
+            </div>
+            <div class="fingers">
+              <div class="fdot" id="fd0">T</div>
+              <div class="fdot" id="fd1">I</div>
+              <div class="fdot" id="fd2">M</div>
+              <div class="fdot" id="fd3">R</div>
+              <div class="fdot" id="fd4">P</div>
+            </div>
+            <div class="sbox">
+              <div class="sbox-lbl">📝 Sentence</div>
+              <div id="sentence-text">—</div>
+              <div class="brow" style="margin-top:7px;">
+                <button class="btn bp" style="font-size:.71rem;padding:4px 10px;" onclick="speakSentence()">🔊 Speak</button>
+                <button class="btn bg" style="font-size:.71rem;padding:4px 10px;" onclick="clearSentence()">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TEXT TO SIGN ══ -->
+  <div class="panel" id="panel-t2s">
+    <div class="content"><div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">✍️ Enter Words</div></div>
+        <div class="card-body">
+          <textarea class="t2s-in" id="t2sIn" rows="4" placeholder="Type words e.g: HELLO YES GOOD EAT..."></textarea>
+          <div class="brow">
+            <button class="btn bp" onclick="convertText()">👐 Show Signs</button>
+            <button class="btn bo" onclick="speakT2S()">🔊 Speak</button>
+            <button class="btn bg" onclick="clearT2S()">🗑 Clear</button>
+          </div>
+          <div style="margin-top:11px;padding:10px;background:var(--bg);border-radius:9px;border:1px solid var(--border);">
+            <div style="font-size:.66rem;font-weight:600;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Quick add</div>
+            <div id="qwords" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">👐 Hand Gestures</div></div>
+        <div class="card-body"><div id="hand-display" style="color:var(--muted2);text-align:center;padding:28px 14px;font-size:.82rem;">Type words and click Show Signs →</div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ══ AI ══ -->
+  <div class="panel" id="panel-ai">
+    <div class="content"><div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">🤖 AI Sign Assistant</div><button class="btn bg" style="font-size:.69rem;padding:3px 8px;" onclick="clearChat()">🗑</button></div>
+        <div class="card-body">
+          <div class="chat-box" id="chatBox"></div>
+          <div class="chat-in-row">
+            <input class="chat-in" id="chatIn" placeholder="Ask about sign language..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="btn bp" onclick="sendChat()">Send →</button>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn bg" style="font-size:.68rem;padding:3px 8px;" onclick="qChat('How do I sign HELLO?')">Sign HELLO?</button>
+            <button class="btn bg" style="font-size:.68rem;padding:3px 8px;" onclick="qChat('What medical signs are there?')">Medical signs?</button>
+            <button class="btn bg" style="font-size:.68rem;padding:3px 8px;" onclick="qChat('Tips for better detection')">Tips?</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">📊 Session Stats</div></div>
+        <div class="card-body" id="sessionDiv"><div style="color:var(--muted2);font-size:.8rem;text-align:center;padding:16px;">Detect signs to see stats.</div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ══ LIBRARY ══ -->
+  <div class="panel" id="panel-library">
+    <div class="content">
+      <div style="margin-bottom:11px;"><h2 style="font-size:1rem;font-weight:700;">📚 Sign Library</h2><p style="color:var(--muted2);font-size:.76rem;margin-top:1px;">47 signs · click to hear</p></div>
+      <input class="lib-search" id="lsearch" placeholder="🔍 Search..." oninput="filterLib()">
+      <div class="lib-cats" id="lcats"></div>
+      <div class="lib-grid" id="lgrid"></div>
+    </div>
+  </div>
+
+  <!-- ══ QUIZ ══ -->
+  <div class="panel" id="panel-quiz">
+    <div class="content"><div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">🧩 Sign Quiz</div><div id="qz-badge" style="background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-soft);padding:3px 10px;border-radius:20px;font-size:.77rem;font-weight:700;">0/0</div></div>
+        <div class="card-body">
+          <div id="qz-idle" style="text-align:center;padding:18px 12px;">
+            <div style="font-size:2rem;margin-bottom:7px;">🧩</div>
+            <div style="font-weight:600;font-size:.88rem;margin-bottom:3px;">Identify the sign!</div>
+            <div style="color:var(--muted2);font-size:.77rem;margin-bottom:13px;">See a hand drawing → pick the correct sign</div>
+            <button class="btn bp" onclick="startQuiz()">▶ Start Quiz</button>
+          </div>
+          <div id="qz-active" style="display:none;">
+            <div style="text-align:center;margin-bottom:9px;">
+              <div style="font-size:.7rem;color:var(--muted2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">Which sign is this?</div>
+              <canvas id="qz-cv" width="150" height="150" style="display:block;margin:0 auto 9px;border-radius:12px;background:#080c19;"></canvas>
+            </div>
+            <div id="qz-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;"></div>
+            <div id="qz-fb" style="text-align:center;min-height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-weight:600;font-size:.82rem;padding:5px;"></div>
+            <div style="background:var(--bg);border-radius:9px;padding:6px 11px;display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted2);margin-top:7px;">
+              <span>✅ <b id="qz-c" style="color:var(--green);">0</b></span>
+              <span>❌ <b id="qz-w" style="color:var(--red);">0</b></span>
+              <span>Q:<b id="qz-n" style="color:var(--accent);">1</b>/10</span>
+            </div>
+          </div>
+          <div id="qz-done" style="display:none;text-align:center;padding:14px 10px;">
+            <div style="font-size:2rem;margin-bottom:5px;">🏆</div>
+            <div style="font-size:.88rem;font-weight:600;margin-bottom:3px;">Quiz Complete!</div>
+            <div id="qz-final" style="font-size:2rem;font-weight:700;color:var(--accent);margin:7px 0;"></div>
+            <div id="qz-msg" style="font-size:.78rem;color:var(--muted2);margin-bottom:12px;"></div>
+            <button class="btn bp" onclick="startQuiz()" style="margin-right:6px;">▶ Again</button>
+            <button class="btn bg" onclick="document.getElementById('qz-done').style.display='none';document.getElementById('qz-idle').style.display='block';">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">ℹ️ How to Play</div></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;gap:8px;"><div style="min-width:24px;height:24px;background:var(--accent-light);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:.75rem;">1</div><div style="font-size:.78rem;color:var(--text2);">A realistic hand drawing is shown</div></div>
+          <div style="display:flex;gap:8px;"><div style="min-width:24px;height:24px;background:#ede9fe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#7c3aed;font-size:.75rem;">2</div><div style="font-size:.78rem;color:var(--text2);">Pick the correct sign from 4 options</div></div>
+          <div style="display:flex;gap:8px;"><div style="min-width:24px;height:24px;background:var(--green-light);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--green);font-size:.75rem;">3</div><div style="font-size:.78rem;color:var(--text2);">10 questions — no camera needed!</div></div>
+          <div style="padding:10px;background:var(--accent-light);border:1px solid var(--accent-soft);border-radius:9px;font-size:.75rem;color:var(--accent);font-weight:500;">🎓 Great for viva — shows knowledge testing!</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div id="py-popup"><div class="pp-en" id="pp-en"></div><div class="pp-ta" id="pp-ta"></div><div class="pp-info">Python Detected ✅</div></div>
+<div id="py-badge"></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+<script>
+// ══════════════════════════════════════════════════
+// 47 UNIQUE SIGNS
+// ══════════════════════════════════════════════════
+const SIGNS={
+  'ZERO':     {f:[0,0,0,0,0],cat:'Numbers',  ta:'பூஜ்யம்',   tr:'Poojiyam'},
+  'ONE':      {f:[0,2,0,0,0],cat:'Numbers',  ta:'ஒன்று',     tr:'Ondru'},
+  'TWO':      {f:[0,2,2,0,0],cat:'Numbers',  ta:'இரண்டு',    tr:'Irandu'},
+  'THREE':    {f:[0,2,2,1,0],cat:'Numbers',  ta:'மூன்று',    tr:'Moondru'},
+  'FOUR':     {f:[0,2,2,1,1],cat:'Numbers',  ta:'நான்கு',    tr:'Naangu'},
+  'FIVE':     {f:[1,2,2,1,1],cat:'Numbers',  ta:'ஐந்து',     tr:'Aindhu'},
+  'SIX':      {f:[1,0,0,0,1],cat:'Numbers',  ta:'ஆறு',       tr:'Aaru'},
+  'SEVEN':    {f:[1,2,0,0,1],cat:'Numbers',  ta:'ஏழு',       tr:'Aezhu'},
+  'EIGHT':    {f:[1,2,2,0,1],cat:'Numbers',  ta:'எட்டு',     tr:'Ettu'},
+  'NINE':     {f:[1,0,0,1,1],cat:'Numbers',  ta:'ஒன்பது',    tr:'Onbadu'},
+  'HELLO':    {f:[1,2,0,1,0],cat:'Greetings',ta:'வணக்கம்',   tr:'Vanakkam'},
+  'GOODBYE':  {f:[1,0,1,0,1],cat:'Greetings',ta:'விடைபெறுகிறேன்',tr:'Vidaiperu'},
+  'THANKS':   {f:[1,0,0,1,0],cat:'Greetings',ta:'நன்றி',     tr:'Nandri'},
+  'SORRY':    {f:[0,2,0,1,1],cat:'Greetings',ta:'மன்னிக்கவும்',tr:'Mannikkavum'},
+  'PLEASE':   {f:[1,2,2,0,0],cat:'Greetings',ta:'தயவுசெய்து',tr:'Thayavuseithu'},
+  'LOVE':     {f:[1,2,0,0,0],cat:'Greetings',ta:'அன்பு',     tr:'Anbu'},
+  'HELP':     {f:[0,2,0,0,1],cat:'Greetings',ta:'உதவி',      tr:'Udavi'},
+  'YES':      {f:[1,0,0,0,0],cat:'Basic',    ta:'ஆம்',       tr:'Aam'},
+  'NO':       {f:[0,0,0,0,1],cat:'Basic',    ta:'இல்லை',     tr:'Illai'},
+  'GOOD':     {f:[0,2,0,1,0],cat:'Basic',    ta:'நல்லது',    tr:'Nalladu'},
+  'BAD':      {f:[0,0,1,0,1],cat:'Basic',    ta:'கெட்டது',   tr:'Kettadu'},
+  'STOP':     {f:[0,0,1,1,1],cat:'Basic',    ta:'நிறுத்து',  tr:'Niruthu'},
+  'COME':     {f:[1,2,2,1,0],cat:'Basic',    ta:'வாருங்கள்', tr:'Varungal'},
+  'GO':       {f:[1,2,0,1,1],cat:'Basic',    ta:'போங்கள்',   tr:'Pogal'},
+  'FOOD':     {f:[0,1,2,0,0],cat:'Food',     ta:'உணவு',      tr:'Unavvu'},
+  'EAT':      {f:[1,0,1,1,0],cat:'Food',     ta:'சாப்பிட',   tr:'Saapida'},
+  'DRINK':    {f:[0,0,1,0,0],cat:'Food',     ta:'குடிக்க',   tr:'Kudikka'},
+  'PAIN':     {f:[0,0,0,1,1],cat:'Medical',  ta:'வலி',       tr:'Vali'},
+  'DOCTOR':   {f:[1,0,1,1,1],cat:'Medical',  ta:'டாக்டர்',   tr:'Doctor'},
+  'HOSPITAL': {f:[0,1,0,0,0],cat:'Medical',  ta:'மருத்துவமனை',tr:'Hospital'},
+  'MEDICINE': {f:[0,1,1,0,0],cat:'Medical',  ta:'மருந்து',   tr:'Marundhu'},
+  'FEVER':    {f:[0,1,0,1,0],cat:'Medical',  ta:'காய்ச்சல்', tr:'Kaychal'},
+  'HEADACHE': {f:[0,1,0,0,1],cat:'Medical',  ta:'தலைவலி',    tr:'Thalaivali'},
+  'AMBULANCE':{f:[0,1,1,1,0],cat:'Medical',  ta:'ஆம்புலன்ஸ்',tr:'Ambulance'},
+  'MOTHER':   {f:[0,1,1,1,1],cat:'People',   ta:'அம்மா',     tr:'Amma'},
+  'FATHER':   {f:[1,1,0,1,0],cat:'People',   ta:'அப்பா',     tr:'Appa'},
+  'BROTHER':  {f:[1,1,0,0,1],cat:'People',   ta:'அண்ணன்',    tr:'Annan'},
+  'SISTER':   {f:[1,1,1,0,1],cat:'People',   ta:'அக்கா',     tr:'Akka'},
+  'FRIEND':   {f:[1,1,1,1,0],cat:'People',   ta:'நண்பன்',    tr:'Nanban'},
+  'HAPPY':    {f:[0,1,0,1,1],cat:'Emotions', ta:'மகிழ்ச்சி', tr:'Magizhchi'},
+  'SAD':      {f:[0,1,2,1,0],cat:'Emotions', ta:'சோகம்',     tr:'Sogam'},
+  'ANGRY':    {f:[1,1,0,1,1],cat:'Emotions', ta:'கோபம்',     tr:'Kopam'},
+  'TIRED':    {f:[0,1,1,0,1],cat:'Emotions', ta:'சோர்வு',    tr:'Sorvu'},
+  'WHAT':     {f:[1,1,2,0,0],cat:'Questions',ta:'என்ன',      tr:'Enna'},
+  'WHERE':    {f:[1,1,0,0,0],cat:'Questions',ta:'எங்கே',     tr:'Enge'},
+  'WHO':      {f:[0,1,2,0,1],cat:'Questions',ta:'யார்',      tr:'Yaar'},
+  'HOW':      {f:[1,1,2,1,0],cat:'Questions',ta:'எப்படி',    tr:'Eppadi'},
+};
+const SK=Object.keys(SIGNS);
+
+// ══ STATE ══
+let stream=null,mp=null,mpcam=null,detecting=false;
+let stable={L:{n:0,last:''},R:{n:0,last:''}};
+let curSign='',curLang='en';
+let sentence=[],slog=[],detCnt=0;
+let voices=[],taVoice=null,enVoice=null;
+let t2sRes=[],chatHist=[];
+const STABLE=22;
+let fps=0,fpsC=0,fpsT=Date.now();
+let qzAns=null,qzC=0,qzW=0,qzN=0;
+
+// Skeleton style: 'multi' = each finger different color, 'duo' = purple/green
+let skelStyle='multi';
+
+// Streak + Accuracy
+let curStreak=0,bestStreak=0;
+let lastStreakSign='';
+let accHistory=[];
+
+// Subtitle banner
+let bannerOn=false;
+let bannerTimer=null;
+
+// Smoothing
+const fingerHistory={L:[],R:[]};
+const HIST_LEN=3;
+function smoothFingers(side,fi){
+  const h=fingerHistory[side];h.push(fi);
+  if(h.length>HIST_LEN)h.shift();
+  if(h.length<2)return fi;
+  return fi.map((_,i)=>{
+    const vals=h.map(f=>f[i]);
+    const counts={};vals.forEach(v=>counts[v]=(counts[v]||0)+1);
+    return parseInt(Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]);
+  });
+}
+
+// Multicolor per finger (like screenshot)
+const FINGER_COLORS=[
+  '#ff6b6b', // Thumb — red
+  '#ffd93d', // Index — yellow
+  '#6bcb77', // Middle — green
+  '#4d96ff', // Ring — blue
+  '#c77dff', // Pinky — purple
+];
+const CONN_COLORS=[
+  // Each finger has 4 connections; thumb=0, index=1..4, middle=5..8 etc
+  // We map connection index to finger color
+  '#ff6b6b','#ff6b6b','#ff6b6b','#ff6b6b', // thumb
+  '#ffd93d','#ffd93d','#ffd93d','#ffd93d', // index
+  '#6bcb77','#6bcb77','#6bcb77','#6bcb77', // middle
+  '#4d96ff','#4d96ff','#4d96ff','#4d96ff', // ring
+  '#c77dff','#c77dff','#c77dff','#c77dff', // pinky
+  '#ffffff', // palm connections
+];
+
+// ══ INIT ══
+document.getElementById('enterBtn').addEventListener('click',()=>{
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('app').style.display='block';
+  init();
+});
+
+function init(){
+  showSOTD();buildLib();buildQW();loadVoices();
+  window.speechSynthesis.onvoiceschanged=loadVoices;
+  initMP();initChat();
+  toast('Welcome! 🤟 Click Start Camera');
+}
+
+// ══ SIGN OF THE DAY ══
+function showSOTD(){
+  // Pick based on day of year for consistency
+  const day=Math.floor(Date.now()/86400000);
+  const key=SK[day%SK.length];
+  const data=SIGNS[key];
+  document.getElementById('sotd-name').textContent=key;
+  document.getElementById('sotd-ta').textContent=data.ta+' ('+data.tr+')';
+  const cv=document.getElementById('sotd-cv');
+  // Draw after fonts load
+  setTimeout(()=>drawHand(cv,data.f),300);
+}
+
+function sw(n,el){
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('panel-'+n).classList.add('on');
+  if(n==='ai')updateSession();
+}
+
+function setLang(l,el){
+  curLang=l;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  buildLib();toast('Language: '+(l==='en'?'English':'தமிழ்'));
+}
+const disp=s=>!s?'—':(curLang==='ta'?(SIGNS[s]?.ta||s):s);
+
+// ══ SKELETON TOGGLE ══
+function toggleSkeleton(){
+  skelStyle=skelStyle==='multi'?'duo':'multi';
+  const btn=document.getElementById('skelBtn');
+  btn.textContent=skelStyle==='multi'?'🎨 Multi':'🟣 Duo';
+  toast('Skeleton: '+(skelStyle==='multi'?'Multi-color':'Purple/Green'));
+}
+
+// ══ SUBTITLE BANNER ══
+function toggleBanner(){
+  bannerOn=!bannerOn;
+  const banner=document.getElementById('subtitle-banner');
+  banner.style.display=bannerOn?'flex':'none';
+  document.getElementById('bannerBtn').textContent=bannerOn?'📺 Hide':'📺 Subtitles';
+  if(bannerOn)toast('📺 Subtitle banner ON!');
+}
+
+function updateBanner(sign,ta){
+  if(!bannerOn)return;
+  const st=document.getElementById('subtitle-text');
+  const tta=document.getElementById('subtitle-ta');
+  const text=sentence.length?sentence.join(' → '):sign;
+  const taText=sentence.length?sentence.map(s=>SIGNS[s]?.ta||s).join(' '):ta;
+  st.textContent=text||'—';
+  st.style.animation='none';
+  requestAnimationFrame(()=>{st.style.animation='scrollBanner 12s linear infinite';});
+  tta.textContent=taText||'';
+  tta.style.fontFamily="'Noto Sans Tamil',sans-serif";
+}
+
+// ══ MEDIAPIPE ══
+function initMP(){
+  setStat('Loading...','dy');
+  if(typeof Hands==='undefined'){setStat('Waiting...','dy');setTimeout(initMP,600);return;}
+  try{
+    mp=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}`});
+    mp.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.85,minTrackingConfidence:0.80});
+    mp.onResults(onResults);
+    mp.initialize()
+      .then(()=>{setStat('Ready ✓','dg');document.getElementById('camBtn').disabled=false;})
+      .catch(()=>{setStat('Ready','dg');document.getElementById('camBtn').disabled=false;});
+  }catch(e){setStat('Ready','dg');document.getElementById('camBtn').disabled=false;}
+}
+
+// ══ CAMERA ══
+async function startCam(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false});
+    const v=document.getElementById('vid');
+    v.srcObject=stream;await v.play().catch(()=>{});
+    v.style.display='block';
+    document.getElementById('cam-idle').style.display='none';
+    document.getElementById('camBtn').style.display='none';
+    document.getElementById('stopBtn').style.display='inline-flex';
+    setCam('Live','dg');detecting=true;fpsC=0;fpsT=Date.now();
+    v.onloadedmetadata=resizeOverlay;
+    window.addEventListener('resize',resizeOverlay);
+    if(mp){
+      try{
+        const{Camera}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js');
+        let _lt=0;
+        mpcam=new Camera(v,{onFrame:async()=>{
+          if(!detecting)return;
+          const now=Date.now();if(now-_lt<80)return;_lt=now;
+          fpsC++;if(now-fpsT>=1000){fps=fpsC;fpsC=0;fpsT=now;}
+          await mp.send({image:v}).catch(()=>{});
+        },width:640,height:480});
+        mpcam.start();
+      }catch(e){simCam(v);}
+    }
+    toast('Camera started! Show your hand 📷');
+  }catch(e){toast('Camera denied ❌');setStat('Denied','dy');}
+}
+
+function resizeOverlay(){
+  const wrap=document.querySelector('.cam-wrap');
+  const ov=document.getElementById('overlay');
+  if(!wrap||!ov)return;
+  ov.width=wrap.offsetWidth;ov.height=wrap.offsetHeight;
+}
+
+function simCam(v){
+  let _lt=0;
+  const loop=(t)=>{
+    if(!detecting)return;requestAnimationFrame(loop);
+    if(t-_lt<80)return;_lt=t;
+    if(mp&&v.readyState>=2){fpsC++;const n=Date.now();if(n-fpsT>=1000){fps=fpsC;fpsC=0;fpsT=n;}mp.send({image:v}).catch(()=>{});}
+  };requestAnimationFrame(loop);
+}
+
+function stopCam(){
+  detecting=false;
+  if(mpcam){mpcam.stop();mpcam=null;}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  const v=document.getElementById('vid');v.pause();v.srcObject=null;v.style.display='none';
+  document.getElementById('cam-idle').style.display='flex';
+  document.getElementById('camBtn').style.display='inline-flex';
+  document.getElementById('stopBtn').style.display='none';
+  const ov=document.getElementById('overlay');ov.getContext('2d').clearRect(0,0,ov.width,ov.height);
+  setCam('Stopped','dy');resetHands();
+}
+
+// ══ RESULTS — PRETRAINED STYLE HUD ══
+function onResults(res){
+  const canvas=document.getElementById('overlay');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth||canvas.width;
+  const H=canvas.offsetHeight||canvas.height;
+  if(canvas.width!==W)canvas.width=W;
+  if(canvas.height!==H)canvas.height=H;
+  ctx.clearRect(0,0,W,H);
+
+  const numHands=res.multiHandLandmarks?.length||0;
+
+  // TOP BAR
+  ctx.fillStyle='rgba(8,12,25,0.85)';
+  ctx.fillRect(0,0,W,Math.round(H*0.12));
+  ctx.font='bold '+Math.round(W*0.026)+'px monospace';
+  ctx.fillStyle='#64c8ff';
+  ctx.fillText('Sign Language Recognition  v3',Math.round(W*0.02),Math.round(H*0.062));
+  ctx.font=Math.round(W*0.02)+'px monospace';
+  ctx.fillStyle='#8cdc8c';
+  ctx.fillText('FPS:'+fps+'  Hands:'+numHands,W-Math.round(W*0.26),Math.round(H*0.062));
+
+  if(!numHands){
+    for(const s of['L','R'])stable[s].n=Math.max(0,stable[s].n-2);
+    ctx.fillStyle='rgba(8,12,25,0.75)';
+    ctx.fillRect(0,H-Math.round(H*0.14),W,Math.round(H*0.14));
+    ctx.font=Math.round(W*0.025)+'px sans-serif';
+    ctx.fillStyle='rgba(70,80,120,0.9)';
+    ctx.fillText('Show your hand...',Math.round(W*0.03),H-Math.round(H*0.055));
+    return;
+  }
+
+  // DRAW SKELETONS
+  for(let i=0;i<numHands;i++){
+    const lm=res.multiHandLandmarks[i];
+    const lb=res.multiHandedness[i].classification[0].label;
+    const isL=lb==='Left';
+
+    if(skelStyle==='multi'){
+      // Multicolor — each finger different color (like screenshot)
+      drawMultiColorSkeleton(ctx,lm,W,H);
+    } else {
+      // Duo color — purple left, green right
+      if(typeof drawConnectors==='function'){
+        drawConnectors(ctx,lm,HAND_CONNECTIONS,{
+          color:isL?'rgba(167,139,250,0.9)':'rgba(52,211,153,0.9)',
+          lineWidth:3
+        });
+      }
+      if(typeof drawLandmarks==='function'){
+        drawLandmarks(ctx,lm,{
+          color:isL?'#c084fc':'#6ee7b7',
+          fillColor:isL?'#7c3aed':'#059669',
+          lineWidth:1,
+          radius:(p)=>([4,8,12,16,20].includes(p.index)?Math.round(W*0.014):Math.round(W*0.009))
+        });
+      }
+    }
+  }
+
+  // DETECT SIGNS
+  const det={L:null,R:null};
+  for(let i=0;i<numHands;i++){
+    const lm=res.multiHandLandmarks[i];
+    const hd=res.multiHandedness[i].classification[0];
+    const lb=hd.label;
+    if((hd.score||1)<0.75)continue;
+    const side=lb==='Left'?'L':'R';
+    const rawFi=getFingers(lm,lb);
+    const fi=smoothFingers(side,rawFi);
+    const{sign,conf}=matchSign(fi);
+    if(sign)det[side]={sign,conf,fi};
+    else det[side]={sign:null,conf:0,fi};
+  }
+
+  updBox('l',det.L);updBox('r',det.R);
+
+  const prim=det.R||det.L;
+  const primSign=prim?.sign||null;
+  const primConf=prim?.conf||0;
+  const primFi=prim?.fi||[0,0,0,0,0];
+
+  // BOTTOM BAR
+  const bH=Math.round(H*0.30);
+  ctx.fillStyle='rgba(8,12,25,0.85)';
+  ctx.fillRect(0,H-bH,W,bH);
+
+  if(primSign){
+    const sd=SIGNS[primSign];
+    const sc=primConf>=1.0?'#46dc6e':'#46c3fb';
+
+    // Large sign name
+    ctx.fillStyle=sc;
+    ctx.font='bold '+Math.round(W*0.08)+'px sans-serif';
+    ctx.fillText(primSign,Math.round(W*0.03),H-Math.round(bH*0.73));
+
+    // Tamil
+    ctx.fillStyle='#ffdc3c';
+    ctx.font=Math.round(W*0.042)+'px "Noto Sans Tamil",sans-serif';
+    ctx.fillText(sd.ta,Math.round(W*0.03),H-Math.round(bH*0.46));
+
+    // Transliteration
+    ctx.fillStyle='rgba(170,185,220,0.8)';
+    ctx.font=Math.round(W*0.024)+'px sans-serif';
+    ctx.fillText('( '+sd.tr+' )',Math.round(W*0.03),H-Math.round(bH*0.26));
+
+    // Accuracy in top-right of bottom bar
+    ctx.fillStyle=sc;
+    ctx.font='bold '+Math.round(W*0.055)+'px monospace';
+    ctx.textAlign='right';
+    ctx.fillText(Math.round(primConf*100)+'%',W-Math.round(W*0.03),H-Math.round(bH*0.55));
+    ctx.textAlign='left';
+
+    // Confidence bar
+    const bary=H-Math.round(bH*0.12);
+    const barw=Math.round(W*0.55);
+    ctx.fillStyle='rgba(25,35,65,0.85)';
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(Math.round(W*0.03),bary-7,barw,13,6);else ctx.rect(Math.round(W*0.03),bary-7,barw,13);ctx.fill();
+    ctx.fillStyle=sc;
+    const fill=Math.round(barw*primConf);
+    if(fill>0){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(Math.round(W*0.03),bary-7,fill,13,6);else ctx.rect(Math.round(W*0.03),bary-7,fill,13);ctx.fill();}
+  } else {
+    ctx.fillStyle='rgba(70,85,130,0.85)';
+    ctx.font=Math.round(W*0.026)+'px sans-serif';
+    ctx.fillText('Detecting...',Math.round(W*0.03),H-Math.round(bH*0.55));
+  }
+
+  // FINGER DOTS T I M R P
+  const labels=['T','I','M','R','P'];
+  const dotY=Math.round(H*0.108);
+  const dotR=Math.round(W*0.022);
+  const dStart=Math.round(W*0.53);
+  const dGap=Math.round(W*0.092);
+  for(let i=0;i<5;i++){
+    const cx=dStart+i*dGap;
+    const st=primFi[i];
+    const on=st>0,half=st===1;
+    const dotColor=on?(skelStyle==='multi'?FINGER_COLORS[i]:(half?'#a78bfa':'#46dc6e')):'rgba(45,50,90,0.8)';
+    ctx.strokeStyle=dotColor;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(cx,dotY,dotR+2,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle=on?dotColor.replace('0.8)','0.25)').replace('#',`rgba(`):'rgba(15,20,50,0.85)';
+    if(on){
+      // Colored fill for active dots
+      const rgb=hexToRgb(on?FINGER_COLORS[i]:'#333');
+      ctx.fillStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`;
+    }else{ctx.fillStyle='rgba(15,20,50,0.85)';}
+    ctx.beginPath();ctx.arc(cx,dotY,dotR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font='bold '+Math.round(W*0.022)+'px monospace';
+    ctx.textAlign='center';ctx.fillText(labels[i],cx,dotY+Math.round(W*0.008));ctx.textAlign='left';
+  }
+
+  // STREAK BADGE on canvas
+  if(curStreak>=3){
+    const sx=Math.round(W*0.03),sy=Math.round(H*0.165);
+    ctx.fillStyle='rgba(245,158,11,0.9)';
+    const btxt='🔥 '+curStreak+' streak!';
+    ctx.font='bold '+Math.round(W*0.023)+'px sans-serif';
+    const tw=ctx.measureText(btxt).width+16;
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(sx-8,sy-17,tw,24,5);else ctx.rect(sx-8,sy-17,tw,24);ctx.fill();
+    ctx.fillStyle='#fff';ctx.fillText(btxt,sx,sy);
+  }
+
+  // HANDS BADGE
+  const bt=numHands===2?'✋🤚 2 Hands':'✋ 1 Hand';
+  const bx=Math.round(W*0.03),by2=Math.round(H*0.175)+(curStreak>=3?28:0);
+  ctx.fillStyle=numHands===2?'rgba(124,58,237,0.8)':'rgba(5,150,105,0.8)';
+  ctx.font='bold '+Math.round(W*0.022)+'px sans-serif';
+  const tw2=ctx.measureText(bt).width+16;
+  ctx.beginPath();if(ctx.roundRect)ctx.roundRect(bx-8,by2-17,tw2,24,5);else ctx.rect(bx-8,by2-17,tw2,24);ctx.fill();
+  ctx.fillStyle='#fff';ctx.fillText(bt,bx,by2);
+
+  // STABILITY BAR
+  if(primSign){
+    const curN=Math.max(stable.R?.n||0,stable.L?.n||0);
+    const prog=Math.min(curN/STABLE,1);
+    const sx=Math.round(W*0.03),sy2=Math.round(H*0.175)+(curStreak>=3?55:27);
+    const sw2=Math.round(W*0.26);
+    ctx.fillStyle='rgba(20,28,55,0.75)';
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(sx,sy2,sw2,7,3);else ctx.rect(sx,sy2,sw2,7);ctx.fill();
+    ctx.fillStyle=prog>=1?'#46dc6e':prog>0.5?'#46c3fb':'#a78bfa';
+    const fw=Math.round(sw2*prog);if(fw>0){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(sx,sy2,fw,7,3);else ctx.rect(sx,sy2,fw,7);ctx.fill();}
+    ctx.fillStyle='rgba(150,165,210,0.75)';
+    ctx.font=Math.round(W*0.019)+'px monospace';
+    ctx.fillText(prog>=1?'✓ Confirmed!':'Stabilizing...',sx,sy2+19);
+  }
+
+  // STABILITY LOGIC
+  for(const[side,d]of[['L',det.L],['R',det.R]]){
+    if(!d?.sign){stable[side].n=Math.max(0,stable[side].n-2);continue;}
+    if(d.sign===stable[side].last)stable[side].n++;
+    else{stable[side].last=d.sign;stable[side].n=1;}
+    if(stable[side].n>=STABLE){stable[side].n=0;onConfirmed(d.sign,d.conf);}
+  }
+
+  // Update result panel
+  if(primSign){
+    document.getElementById('sign-en').textContent=primSign;
+    document.getElementById('sign-ta').textContent=SIGNS[primSign].ta;
+    document.getElementById('sign-ta').style.fontFamily="'Noto Sans Tamil',sans-serif";
+    document.getElementById('sign-tr').textContent='( '+SIGNS[primSign].tr+' )';
+    document.getElementById('cfill')&&(document.getElementById('cfill').style.width=Math.round(primConf*100)+'%');
+    document.getElementById('clbl')&&(document.getElementById('clbl').textContent=Math.round(primConf*100)+'%');
+    document.getElementById('sv-a').textContent=Math.round(primConf*100)+'%';
+    setFdots(primFi);
+    updateAccuracyRing(primConf);
+  }
+}
+
+// ══ MULTICOLOR SKELETON (like screenshot) ══
+function drawMultiColorSkeleton(ctx,lm,W,H){
+  if(!lm||!lm.length)return;
+  // Scale landmarks to canvas
+  const sc=(pt)=>({x:pt.x*W,y:pt.y*H});
+
+  // Connection groups per finger
+  const fingerGroups=[
+    [[0,1],[1,2],[2,3],[3,4]],         // Thumb — red
+    [[0,5],[5,6],[6,7],[7,8]],          // Index — yellow
+    [[0,9],[9,10],[10,11],[11,12]],     // Middle — green
+    [[0,13],[13,14],[14,15],[15,16]],   // Ring — blue
+    [[0,17],[17,18],[18,19],[19,20]],   // Pinky — purple
+  ];
+
+  // Draw connections with finger-specific colors
+  fingerGroups.forEach((conns,fi)=>{
+    ctx.strokeStyle=FINGER_COLORS[fi];
+    ctx.lineWidth=3;
+    conns.forEach(([a,b])=>{
+      const pa=sc(lm[a]),pb=sc(lm[b]);
+      ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.stroke();
+    });
+  });
+
+  // Palm connections
+  ctx.strokeStyle='rgba(220,220,255,0.6)';ctx.lineWidth=2;
+  [[0,5],[0,9],[0,13],[0,17],[5,9],[9,13],[13,17]].forEach(([a,b])=>{
+    const pa=sc(lm[a]),pb=sc(lm[b]);
+    ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.stroke();
+  });
+
+  // Draw landmark dots
+  lm.forEach((pt,idx)=>{
+    const p=sc(pt);
+    // Determine which finger this belongs to
+    let fc='rgba(220,220,255,0.8)';
+    if(idx>=1&&idx<=4)fc=FINGER_COLORS[0];
+    else if(idx>=5&&idx<=8)fc=FINGER_COLORS[1];
+    else if(idx>=9&&idx<=12)fc=FINGER_COLORS[2];
+    else if(idx>=13&&idx<=16)fc=FINGER_COLORS[3];
+    else if(idx>=17&&idx<=20)fc=FINGER_COLORS[4];
+
+    const isTip=[4,8,12,16,20].includes(idx);
+    const r=isTip?Math.round(W*0.014):Math.round(W*0.009);
+
+    // Outer white ring
+    ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(p.x,p.y,r+1.5,0,Math.PI*2);ctx.stroke();
+    // Colored fill
+    ctx.fillStyle=fc;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+  });
+}
+
+function hexToRgb(hex){
+  const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)}:{r:100,g:100,b:255};
+}
+
+// ══ ACCURACY RING ══
+function updateAccuracyRing(conf){
+  const pct=Math.round(conf*100);
+  const circ=169.6;
+  const offset=circ-(circ*(pct/100));
+  const circle=document.getElementById('acc-circle');
+  if(!circle)return;
+  circle.style.strokeDashoffset=offset;
+  circle.style.stroke=pct>=90?'#46dc6e':pct>=70?'#46c3fb':'#f59e0b';
+  document.getElementById('acc-pct').textContent=pct+'%';
+}
+
+// ══ ONCONFIRMED ══
+function onConfirmed(sign,conf){
+  curSign=sign;detCnt++;
+  document.getElementById('sv-d').textContent=detCnt;
+  slog.push({sign,conf,time:new Date().toLocaleTimeString()});
+  accHistory.push(conf);
+  if(accHistory.length>20)accHistory.shift();
+
+  // Streak logic
+  if(sign!==lastStreakSign){
+    curStreak++;
+    if(curStreak>bestStreak){bestStreak=curStreak;document.getElementById('sv-streak').textContent=bestStreak;}
+    lastStreakSign=sign;
+  }else{curStreak=0;lastStreakSign='';}
+  document.getElementById('cur-streak').textContent=curStreak;
+  document.getElementById('best-streak').textContent=bestStreak;
+
+  // Avg accuracy
+  const avg=Math.round(accHistory.reduce((a,b)=>a+b,0)/accHistory.length*100);
+  document.getElementById('avg-acc').textContent=avg+'%';
+
+  // Sentence
+  if(!sentence.length||sentence[sentence.length-1]!==sign){
+    sentence.push(sign);
+    document.getElementById('sv-w')&&(document.getElementById('sv-w').textContent=sentence.length);
+    const st=document.getElementById('sentence-text');
+    st.textContent=sentence.map(s=>disp(s)).join(' → ');
+    st.style.fontFamily=curLang==='ta'?"'Noto Sans Tamil',sans-serif":"inherit";
+  }
+  speak(curLang==='ta'?SIGNS[sign].ta:sign);
+  updateBanner(sign,SIGNS[sign].ta);
+  toast('✅ '+sign+' — '+SIGNS[sign].ta+(curStreak>=3?' 🔥'+curStreak:''));
+}
+
+// ══ FINGER DETECTION ══
+function getFingers(lm,hand){
+  const f=[];
+  const tTol=0.02;
+  f.push(hand==='Right'?(lm[4].x<lm[3].x-tTol?1:0):(lm[4].x>lm[3].x+tTol?1:0));
+  const iTip=lm[8].y,iPip=lm[6].y,iDip=lm[7].y;
+  if(iTip<iPip-0.025)f.push(2);
+  else if(iTip<iDip-0.01)f.push(1);
+  else f.push(0);
+  const tol=0.02;
+  [[12,10],[16,14],[20,18]].forEach(([tip,pip])=>f.push(lm[tip].y<lm[pip].y-tol?1:0));
+  return f;
+}
+
+function matchSign(fi){
+  for(const[n,d]of Object.entries(SIGNS))if(fi.every((v,i)=>v===d.f[i]))return{sign:n,conf:1.0};
+  const W2=[1.5,1.5,1.0,1.0,1.0],WT=7.0;
+  let best=null,bs=0;
+  for(const[n,d]of Object.entries(SIGNS)){const sc=fi.reduce((a,v,i)=>a+(v===d.f[i]?W2[i]:0),0)/WT;if(sc>bs){bs=sc;best=n;}}
+  return bs>=0.80?{sign:best,conf:bs}:{sign:null,conf:0};
+}
+
+function updBox(side,d){
+  const box=document.getElementById(side+'box'),se=document.getElementById(side+'sign'),te=document.getElementById(side+'ta');
+  if(d?.sign){box.className='hbox '+(side==='l'?'al':'ar');se.textContent=d.sign+' '+Math.round(d.conf*100)+'%';te.textContent=SIGNS[d.sign]?.ta||'';te.style.fontFamily="'Noto Sans Tamil',sans-serif";}
+  else{box.className='hbox';se.textContent='—';te.textContent='';}
+}
+
+function setFdots(f){
+  ['fd0','fd1','fd2','fd3','fd4'].forEach((id,i)=>{
+    const el=document.getElementById(id);el.className='fdot';
+    if(i===1){if(f[i]===2)el.classList.add('on');else if(f[i]===1)el.classList.add('half');}
+    else{if(f[i])el.classList.add('on');}
+  });
+}
+function resetHands(){updBox('l',null);updBox('r',null);stable={L:{n:0,last:''},R:{n:0,last:''}};setFdots([0,0,0,0,0]);}
+
+// ══ SPEECH ══
+function loadVoices(){
+  voices=window.speechSynthesis.getVoices();
+  taVoice=voices.find(v=>v.lang==='ta-IN')||voices.find(v=>v.lang.startsWith('ta'))||null;
+  enVoice=voices.find(v=>v.lang==='en-IN')||voices.find(v=>v.lang==='en-US')||voices.find(v=>v.lang.startsWith('en'))||null;
+}
+function speak(text){
+  if(!window.speechSynthesis||!text)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  if(curLang==='ta'){if(taVoice)u.voice=taVoice;u.lang='ta-IN';u.rate=0.82;u.pitch=1.05;}
+  else{if(enVoice)u.voice=enVoice;u.lang='en-US';u.rate=0.92;u.pitch=1.0;}
+  u.volume=1.0;speechSynthesis.speak(u);
+}
+function speakCurrent(){if(curSign)speak(curLang==='ta'?SIGNS[curSign].ta:curSign);else toast('No sign yet!');}
+function speakSentence(){if(!sentence.length){toast('Empty!');return;}speak(sentence.map(s=>curLang==='ta'?SIGNS[s].ta:s).join(' '));}
+
+// ══ TEXT TO SIGN ══
+function buildQW(){
+  document.getElementById('qwords').innerHTML=SK.map(k=>`<span onclick="addW('${k}')" style="background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:5px;font-size:.68rem;cursor:pointer;font-weight:600;">${k}</span>`).join('');
+}
+function addW(w){const i=document.getElementById('t2sIn');i.value=(i.value?i.value+' ':'')+w;}
+function convertText(){
+  const inp=document.getElementById('t2sIn').value.trim().toUpperCase();
+  if(!inp){toast('Enter words first');return;}
+  t2sRes=[];const dp=document.getElementById('hand-display');dp.innerHTML='';
+  inp.split(/\s+/).forEach(word=>{
+    const data=SIGNS[word];
+    if(data){
+      t2sRes.push({word,data});
+      const card=document.createElement('div');card.className='hand-card';
+      const cv2=document.createElement('canvas');cv2.width=110;cv2.height=115;cv2.style.cssText='display:block;width:100%;height:auto;';
+      const en=document.createElement('div');en.style.cssText='font-weight:700;font-size:.76rem;color:#a78bfa;margin-top:4px;';en.textContent=word;
+      const ta=document.createElement('div');ta.style.cssText="font-family:'Noto Sans Tamil',sans-serif;font-size:.72rem;color:#6ee7b7;margin-top:1px;";ta.textContent=data.ta;
+      card.appendChild(cv2);card.appendChild(en);card.appendChild(ta);
+      card.onclick=()=>speak(curLang==='ta'?data.ta:word);
+      dp.appendChild(card);
+      requestAnimationFrame(()=>drawHand(cv2,data.f));
+    }else{
+      const card=document.createElement('div');card.className='hand-card';
+      card.innerHTML=`<div style="font-size:1.3rem;margin-bottom:3px;">❓</div><div style="font-weight:700;font-size:.73rem;color:#4a5080;">${word}</div>`;
+      dp.appendChild(card);
+    }
+  });
+  if(!t2sRes.length)dp.innerHTML='<div style="color:var(--muted2);padding:12px;font-size:.81rem;">No signs found.</div>';
+  else toast('Showing '+t2sRes.length+' signs!');
+}
+function speakT2S(){
+  if(!t2sRes.length){convertText();setTimeout(()=>{const w=t2sRes.map(r=>curLang==='ta'?r.data.ta:r.word).join(' ');if(w)speak(w);},400);return;}
+  speak(t2sRes.map(r=>curLang==='ta'?r.data.ta:r.word).join(' '));
+}
+function clearT2S(){document.getElementById('t2sIn').value='';document.getElementById('hand-display').innerHTML='Type words and click Show Signs →';t2sRes=[];}
+
+// ══ HAND DRAWING — dark background ══
+function drawHand(canvas,fingers){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#080c19';ctx.fillRect(0,0,W,H);
+  function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+  const S0='#f5c9a0',S1='#e8a87c',S2='#d4855a',S3='#b86a3c';
+  const LINE='rgba(160,90,40,.4)',NAIL='#f2ddd0',NAILB='#c9987a';
+  function sG(x,y,w,h,ext){const g=ctx.createLinearGradient(x,y,x+w,y+h);if(ext){g.addColorStop(0,'#fad9b8');g.addColorStop(.5,S0);g.addColorStop(1,S1);}else{g.addColorStop(0,S1);g.addColorStop(.6,S2);g.addColorStop(1,S3);}return g;}
+  const PX=W*.18,PY=H*.48,PW=W*.64,PH=H*.40;
+  const pg=ctx.createLinearGradient(PX,PY,PX+PW,PY+PH);pg.addColorStop(0,'#f9d4a8');pg.addColorStop(.4,S0);pg.addColorStop(.75,S1);pg.addColorStop(1,S2);
+  rr(PX,PY,PW,PH,PW*.14);ctx.fillStyle=pg;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.8;ctx.stroke();
+  [.29,.43,.57,.70].forEach(rx=>{const kx=PX+PW*rx;ctx.beginPath();ctx.arc(kx,PY,PW*.065,Math.PI,0,false);const kg=ctx.createRadialGradient(kx,PY,0,kx,PY,PW*.065);kg.addColorStop(0,'rgba(250,210,170,.55)');kg.addColorStop(1,'rgba(250,210,170,0)');ctx.fillStyle=kg;ctx.fill();});
+  const FD=[{cx:.31,by:.49,ey:.04,fy:.36,hy:.20,fw:.114},{cx:.44,by:.48,ey:.02,fy:.34,hy:.18,fw:.114},{cx:.57,by:.49,ey:.05,fy:.36,hy:.21,fw:.108},{cx:.70,by:.51,ey:.09,fy:.40,hy:.25,fw:.090}];
+  for(let i=0;i<4;i++){
+    const fd=FD[i];const st=fingers[i+1];const ext=st===2,half=st===1;
+    const cx2=W*fd.cx,by2=H*fd.by,tipY=ext?H*fd.ey:(half?H*fd.hy:H*fd.fy);
+    const fw=W*fd.fw,fh=by2-tipY;
+    rr(cx2-fw/2,tipY,fw,fh,fw*.44);ctx.fillStyle=sG(cx2-fw/2,tipY,fw,fh,ext||half);ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();
+    if(ext||half){
+      if(ext){const nw=fw*.66,nh=fw*.44,nx=cx2-nw/2,ny=tipY+fw*.07;rr(nx,ny,nw,nh,nw*.38);const ng=ctx.createLinearGradient(nx,ny,nx,ny+nh);ng.addColorStop(0,'#faeee6');ng.addColorStop(.5,NAIL);ng.addColorStop(1,'#d9b89a');ctx.fillStyle=ng;ctx.fill();ctx.strokeStyle=NAILB;ctx.lineWidth=0.5;ctx.stroke();}
+      if(fh>16){ctx.strokeStyle='rgba(150,85,40,.22)';ctx.lineWidth=0.6;(ext?[.34,.62]:[.55]).forEach(t=>{ctx.beginPath();ctx.moveTo(cx2-fw*.38,tipY+fh*t);ctx.lineTo(cx2+fw*.38,tipY+fh*t);ctx.stroke();});}
+    }else{
+      const ky=by2-fh*.1;ctx.strokeStyle='rgba(150,85,40,.25)';ctx.lineWidth=0.8;
+      [-0.22,0,0.22].forEach(d=>{ctx.beginPath();ctx.arc(cx2+d*fw*1.1,ky,fw*.32,0.25,Math.PI-0.25);ctx.stroke();});
+    }
+  }
+  const tE=fingers[0]===1;const tbx=PX+PW*.08,tby=H*.60,tw=W*.108;
+  if(tE){
+    const ttx=PX-W*.06,tty=H*.30;const ang=Math.atan2(tty-tby,ttx-tbx);const tLen=Math.hypot(ttx-tbx,tty-tby);
+    ctx.save();ctx.translate(tbx+tw/2,tby);ctx.rotate(ang+Math.PI/2);
+    rr(-tw/2,-tLen,tw,tLen,tw*.44);const tg2=ctx.createLinearGradient(-tw/2,0,tw/2,-tLen);tg2.addColorStop(0,'#fad9b8');tg2.addColorStop(.5,S0);tg2.addColorStop(1,S1);ctx.fillStyle=tg2;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();ctx.restore();
+  }else{
+    const tth=H*.17;rr(tbx,tby-tth*.3,tw*.9,tth,tw*.4);const tg3=ctx.createLinearGradient(tbx,tby,tbx,tby+tth);tg3.addColorStop(0,S1);tg3.addColorStop(1,S2);ctx.fillStyle=tg3;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();
+  }
+  const WY=PY+PH-2,WH=H*.09;rr(PX+PW*.08,WY,PW*.84,WH,4);const wg=ctx.createLinearGradient(PX,WY,PX,WY+WH);wg.addColorStop(0,S1);wg.addColorStop(1,S3);ctx.fillStyle=wg;ctx.fill();ctx.strokeStyle=LINE;ctx.lineWidth=0.7;ctx.stroke();
+}
+
+// ══ LIBRARY ══
+const LCATS=['All','Numbers','Greetings','Basic','Food','Medical','People','Emotions','Questions'];
+let activeCat='All';
+function buildLib(q=''){
+  const cEl=document.getElementById('lcats');
+  if(!cEl.dataset.b){cEl.innerHTML=LCATS.map(c=>`<div class="lcat${c===activeCat?' on':''}" onclick="libCat('${c}',this)">${c}</div>`).join('');cEl.dataset.b='1';}
+  const grid=document.getElementById('lgrid');grid.innerHTML='';
+  const query=(q||document.getElementById('lsearch')?.value||'').toLowerCase();
+  for(const[name,data]of Object.entries(SIGNS)){
+    if(activeCat!=='All'&&data.cat!==activeCat)continue;
+    if(query&&!name.toLowerCase().includes(query)&&!data.ta.includes(query))continue;
+    const pat=data.f.map((v,i)=>['T','I','M','R','P'][i]+(i===1?(v===2?'↑':v===1?'↗':'↓'):(v?'↑':'↓'))).join(' ');
+    const card=document.createElement('div');card.className='lib-card';
+    const cv2=document.createElement('canvas');cv2.width=145;cv2.height=145;
+    const body=document.createElement('div');body.className='lib-body';
+    body.innerHTML=`<div class="lib-en">${name}</div><div class="lib-ta">${data.ta}</div><div class="lib-pat">${pat}</div>`;
+    card.appendChild(cv2);card.appendChild(body);
+    card.onclick=()=>{speak(curLang==='ta'?data.ta:name);toast('🔊 '+name+' — '+data.ta);};
+    grid.appendChild(card);
+    requestAnimationFrame(()=>drawHand(cv2,data.f));
+  }
+}
+function libCat(cat,el){activeCat=cat;document.querySelectorAll('.lcat').forEach(b=>b.classList.remove('on'));el.classList.add('on');buildLib();}
+function filterLib(){buildLib(document.getElementById('lsearch').value);}
+
+// ══ AI CHAT ══
+const SYS=`You are an ISL expert for the Sign Language Recognition App. Signs: ${SK.join(', ')}. Be concise and helpful.`;
+function initChat(){document.getElementById('chatBox').innerHTML='';addMsg('ai','Vanakkam! 🤟 I am your ISL Assistant. Ask me anything about sign language!');}
+function addMsg(role,text){const box=document.getElementById('chatBox');const d=document.createElement('div');d.className='cmsg '+role;d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;}
+async function sendChat(){
+  const inp=document.getElementById('chatIn');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';addMsg('user',msg);chatHist.push({role:'user',content:msg});
+  const td=document.createElement('div');td.className='tdots';td.id='typing';td.innerHTML='<span></span><span></span><span></span>';
+  document.getElementById('chatBox').appendChild(td);document.getElementById('chatBox').scrollTop=9999;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:SYS,messages:chatHist.slice(-8)})});
+    const data=await r.json();document.getElementById('typing')?.remove();
+    const rep=data.content?.[0]?.text||offAI(msg);chatHist.push({role:'assistant',content:rep});addMsg('ai',rep);
+  }catch(e){document.getElementById('typing')?.remove();const rep=offAI(msg);chatHist.push({role:'assistant',content:rep});addMsg('ai',rep);}
+}
+function offAI(msg){
+  const m=msg.toLowerCase();
+  for(const[n,d]of Object.entries(SIGNS)){if(m.includes(n.toLowerCase())){const pat=d.f.map((v,i)=>['T','I','M','R','P'][i]+(i===1?(v===2?'↑':v===1?'↗':'↓'):(v?'↑':'↓'))).join(' ');return `${n}:\n🤟 Pattern: ${pat}\n🇮🇳 Tamil: ${d.ta} (${d.tr})\n📚 Check Sign Library for hand image!`;}}
+  if(m.includes('how many')||m.includes('total'))return 'App has 47 unique signs with zero duplicate patterns!';
+  if(m.includes('tip')||m.includes('accura')||m.includes('detect'))return 'Tips for better detection:\n1. Good lighting\n2. Hand 30-50cm from camera\n3. Hold still 2 seconds\n4. Plain background\n5. Face camera directly\n6. Use the 🎨 Multi skeleton for better visibility!';
+  return 'Ask me about any sign!\nTry: "How do I sign HELLO?" or "What is HAPPY in Tamil?"';
+}
+function qChat(msg){document.getElementById('chatIn').value=msg;sendChat();}
+function clearChat(){chatHist=[];initChat();}
+function updateSession(){
+  const el=document.getElementById('sessionDiv');
+  if(!slog.length){el.innerHTML='<div style="color:var(--muted2);font-size:.79rem;text-align:center;padding:14px;">Detect signs to see stats.</div>';return;}
+  const cnt={};slog.forEach(s=>{cnt[s.sign]=(cnt[s.sign]||0)+1;});
+  const avgA=slog.length?Math.round(slog.reduce((a,s)=>a+s.conf,0)/slog.length*100):0;
+  el.innerHTML=`<div style="display:flex;gap:8px;margin-bottom:10px;">
+    <div style="flex:1;background:var(--accent-light);border-radius:9px;padding:8px;text-align:center;"><div style="font-size:1.3rem;font-weight:700;color:var(--accent);">${slog.length}</div><div style="font-size:.68rem;color:var(--muted2);">Detections</div></div>
+    <div style="flex:1;background:#ecfdf5;border-radius:9px;padding:8px;text-align:center;"><div style="font-size:1.3rem;font-weight:700;color:var(--green);">${bestStreak}</div><div style="font-size:.68rem;color:var(--muted2);">Best streak</div></div>
+    <div style="flex:1;background:var(--bg);border-radius:9px;padding:8px;text-align:center;"><div style="font-size:1.3rem;font-weight:700;color:var(--accent);">${avgA}%</div><div style="font-size:.68rem;color:var(--muted2);">Avg accuracy</div></div>
+  </div>`+Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([s,c])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><div><div style="font-weight:700;font-size:.79rem;color:var(--accent);">${s}</div><div style="font-family:'Noto Sans Tamil',sans-serif;font-size:.71rem;color:#7c3aed;">${SIGNS[s]?.ta||''}</div></div><span style="background:var(--accent-light);color:var(--accent);border-radius:5px;padding:1px 6px;font-size:.7rem;font-weight:700;">${c}×</span></div>`).join('');
+}
+
+// ══ QUIZ ══
+function startQuiz(){qzC=0;qzW=0;qzN=0;document.getElementById('qz-idle').style.display='none';document.getElementById('qz-done').style.display='none';document.getElementById('qz-active').style.display='block';nextQZ();}
+function nextQZ(){
+  if(qzN>=10){endQZ();return;}qzN++;
+  document.getElementById('qz-badge').textContent=qzC+'/'+(qzN-1);
+  document.getElementById('qz-n').textContent=qzN;
+  qzAns=SK[Math.floor(Math.random()*SK.length)];
+  drawHand(document.getElementById('qz-cv'),SIGNS[qzAns].f);
+  const wrong=SK.filter(k=>k!==qzAns);
+  const opts=[qzAns];
+  while(opts.length<4){const r=wrong[Math.floor(Math.random()*wrong.length)];if(!opts.includes(r))opts.push(r);}
+  opts.sort(()=>Math.random()-.5);
+  document.getElementById('qz-opts').innerHTML=opts.map(o=>`<button class="quiz-opt" onclick="checkQZ('${o}')"><span style="color:var(--accent);font-weight:700;">${o}</span><span style="font-family:'Noto Sans Tamil',sans-serif;color:#7c3aed;font-size:.73rem;display:block;margin-top:1px;">${SIGNS[o].ta}</span></button>`).join('');
+  const fb=document.getElementById('qz-fb');fb.textContent='';fb.style.background='transparent';
+}
+function checkQZ(choice){
+  document.querySelectorAll('.quiz-opt').forEach(b=>b.style.pointerEvents='none');
+  const fb=document.getElementById('qz-fb');
+  document.querySelectorAll('.quiz-opt').forEach(b=>{if(b.textContent.includes(qzAns))b.classList.add('correct');else if(b.textContent.includes(choice)&&choice!==qzAns)b.classList.add('wrong');});
+  if(choice===qzAns){qzC++;fb.textContent='✅ Correct! — '+SIGNS[qzAns].ta;fb.style.background='#ecfdf5';fb.style.color='#065f46';speak(curLang==='ta'?SIGNS[qzAns].ta:qzAns);}
+  else{qzW++;fb.textContent='❌ Wrong! Answer: '+qzAns+' — '+SIGNS[qzAns].ta;fb.style.background='#fef2f2';fb.style.color='#7f1d1d';}
+  document.getElementById('qz-c').textContent=qzC;document.getElementById('qz-w').textContent=qzW;
+  document.getElementById('qz-badge').textContent=qzC+'/'+qzN;
+  setTimeout(nextQZ,1800);
+}
+function endQZ(){
+  document.getElementById('qz-active').style.display='none';document.getElementById('qz-done').style.display='block';
+  document.getElementById('qz-final').textContent=qzC+' / 10';
+  const msgs=['Keep practising!','Getting better!','Good work!','Almost perfect!','Perfect! Expert!'];
+  document.getElementById('qz-msg').textContent=msgs[Math.min(4,Math.floor(qzC/2))];
+  speak(curLang==='ta'?'வினாடி வினா முடிந்தது! மதிப்பெண் '+qzC:'Quiz done! You scored '+qzC+' out of 10');
+}
+
+// ══ UI HELPERS ══
+function clearResult(){curSign='';document.getElementById('sign-en').textContent='—';document.getElementById('sign-ta').textContent='Show your hand';document.getElementById('sign-tr').textContent='';updateAccuracyRing(0);setFdots([0,0,0,0,0]);resetHands();}
+function clearSentence(){sentence=[];document.getElementById('sentence-text').textContent='—';}
+function setStat(t,d){document.getElementById('stxt').textContent=t;document.getElementById('sdot').className='dot '+(d||'dy');}
+function setCam(t,d){document.getElementById('ctxt').textContent=t;document.getElementById('cdot').className='dot '+(d||'dy');}
+let tT;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>e.classList.remove('show'),2600);}
+
+// ══ PYTHON BACKEND ══
+(()=>{
+  let ws=null,ok=false,tmr=null,cv2=null,cx2=null;
+  function badge(on){const el=document.getElementById('py-badge');el.textContent=on?'🟢 Python Connected':'🟡 Browser Mode';el.style.cssText='position:fixed;bottom:55px;left:16px;padding:4px 10px;border-radius:7px;font-size:.66rem;font-weight:600;z-index:9996;pointer-events:none;font-family:monospace;background:'+(on?'#ecfdf5':'#f5f3ff')+';color:'+(on?'#059669':'#7c3aed')+';border:1px solid '+(on?'#a7f3d0':'#ddd6fe')+';';}
+  function connect(){
+    try{
+      ws=new WebSocket('ws://localhost:8000/ws');
+      ws.onopen=()=>{ok=true;badge(true);startF();};
+      ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d?.confirmed&&d.confirmed_sign){document.getElementById('pp-en').textContent=d.confirmed_sign;document.getElementById('pp-ta').textContent=d.confirmed_tamil||SIGNS[d.confirmed_sign]?.ta||'';const p=document.getElementById('py-popup');p.classList.add('show');clearTimeout(p._t);p._t=setTimeout(()=>p.classList.remove('show'),2500);}}catch(x){}};
+      ws.onclose=()=>{ok=false;badge(false);stopF();setTimeout(connect,3000);};
+      ws.onerror=()=>{ok=false;badge(false);};
+    }catch(x){badge(false);}
+  }
+  function startF(){
+    if(!cv2){cv2=document.createElement('canvas');cv2.width=320;cv2.height=240;cx2=cv2.getContext('2d');}
+    if(tmr)clearInterval(tmr);
+    tmr=setInterval(()=>{
+      if(!ok||!ws||ws.readyState!==1)return;
+      const v=document.getElementById('vid');if(!v?.srcObject||v.videoWidth===0)return;
+      try{cx2.drawImage(v,0,0,320,240);ws.send(JSON.stringify({type:'frame',frame:cv2.toDataURL('image/jpeg',.6)}));}catch(x){}
+    },150);
+  }
+  function stopF(){if(tmr){clearInterval(tmr);tmr=null;}}
+  badge(false);setTimeout(connect,1500);
+})();
+</script>
+</body>
+</html>
